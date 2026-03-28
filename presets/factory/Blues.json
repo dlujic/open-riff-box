@@ -1,0 +1,18 @@
+{
+  "format": "OpenRiffBox",
+  "version": 1,
+  "name": "Blues",
+  "author": "",
+  "date": "2026-03-09",
+  "limiterEnabled": true,
+  "effects": {
+    "NoiseGate": { "bypassed": true, "threshold": -40.0, "attack": 0.001, "hold": 0.10, "release": 0.20, "range": -90.0 },
+    "Distortion": { "bypassed": true, "drive": 0.5, "tone": 0.65, "level": 0.61, "mix": 0.7, "saturate": 0.5, "saturateEnabled": false, "mode": 0, "clipType": 1 },
+    "DiodeDrive": { "bypassed": false, "drive": 0.45, "tone": 0.55, "level": 0.62 },
+    "AmpSimSilver": { "bypassed": false, "gain": 0.22, "bass": 0.55, "mid": 0.6, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "cabinetType": 5, "brightness": 0.5, "micPosition": 0.3 },
+    "AnalogDelay": { "bypassed": true, "time": 0.769, "intensity": 0.35, "echo": 0.35, "modDepth": 0.3, "modRate": 0.3, "tone": 0.5 },
+    "SpringReverb": { "bypassed": false, "dwell": 0.4, "decay": 0.5, "tone": 0.5, "mix": 0.25, "drip": 0.4, "springType": 1 },
+    "Chorus": { "bypassed": true, "rate": 0.3, "depth": 0.4, "eq": 0.7, "eLevel": 0.35 },
+    "Equalizer": { "bypassed": false, "bass": 1.0, "midGain": 1.5, "midFreq": 0.35, "treble": 0.0, "level": 0.0 }
+  }
+}

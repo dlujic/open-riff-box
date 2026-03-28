@@ -1,0 +1,18 @@
+{
+  "format": "OpenRiffBox",
+  "version": 1,
+  "name": "Classic Rock",
+  "author": "",
+  "date": "2026-03-09",
+  "limiterEnabled": true,
+  "effects": {
+    "NoiseGate": { "bypassed": false, "threshold": -45.0, "attack": 0.001, "hold": 0.08, "release": 0.15, "range": -90.0 },
+    "Distortion": { "bypassed": true, "drive": 0.5, "tone": 0.65, "level": 0.61, "mix": 0.7, "saturate": 0.5, "saturateEnabled": false, "mode": 0, "clipType": 1 },
+    "DiodeDrive": { "bypassed": false, "drive": 0.61, "tone": 0.60, "level": 0.68 },
+    "AmpSimSilver": { "bypassed": false, "gain": 0.21, "bass": 0.5, "mid": 0.5, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "cabinetType": 3, "brightness": 0.6, "micPosition": 0.3 },
+    "AnalogDelay": { "bypassed": false, "time": 0.541, "intensity": 0.35, "echo": 0.30, "modDepth": 0.3, "modRate": 0.3, "tone": 0.5 },
+    "SpringReverb": { "bypassed": false, "dwell": 0.40, "decay": 0.5, "tone": 0.5, "mix": 0.20, "drip": 0.4, "springType": 0 },
+    "Chorus": { "bypassed": true, "rate": 0.3, "depth": 0.4, "eq": 0.7, "eLevel": 0.35 },
+    "Equalizer": { "bypassed": false, "bass": 1.7, "midGain": -0.8, "midFreq": 0.5, "treble": 1.5, "level": 0.0 }
+  }
+}
