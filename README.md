@@ -2,7 +2,7 @@
 
 **Free, open-source, lightweight guitar effects processor for Windows.**
 
-Plug in your guitar, choose your effects, and play. No installation, no account, no subscription.
+Plug in your guitar, choose your effects, and play. No installation required.
 
 ![Open Riff Box - Amp Sim](docs/screenshots/amp-sim-panel.jpg)
 
@@ -14,15 +14,15 @@ Plug in your guitar, choose your effects, and play. No installation, no account,
 
 ## Features
 
-- **14 effects across 8 slots** -- Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, 3-Band EQ
-- **3 amp sim engines** -- Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
-- **14 cabinet IRs** -- Studio 57 to Vox Chime, plus No Cabinet and custom IR loading
-- **Real-time processing** -- Low-latency audio via ASIO (WASAPI fallback)
-- **Reorderable signal chain** -- Move effects into any order, or reset to default
-- **Built-in tuner** -- Pitch detection with analog VU-meter display
-- **Preset system** -- Save, load, and quick-switch between 4 preset slots
-- **Portable** -- Single folder, no installer, no registry. Unzip and run.
-- **Zero dependencies** -- Statically linked, no runtime redistributables needed
+- **14 effects across 8 slots** - Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, 3-Band EQ
+- **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
+- **14 cabinet IRs** - Studio 57 to Vox Chime, plus No Cabinet and custom IR loading
+- **Real-time processing** - Low-latency audio via ASIO (WASAPI fallback)
+- **Reorderable signal chain** - Move effects into any order, or reset to default
+- **Built-in tuner** - Pitch detection with analog VU-meter display
+- **Preset system** - Save, load, and quick-switch between 4 preset slots
+- **Portable** - Single folder, no installer, no registry. Unzip and run.
+- **Zero dependencies** - Statically linked, no runtime redistributables needed
 
 ## Quick Start
 
@@ -40,12 +40,12 @@ Plug in your guitar, choose your effects, and play. No installation, no account,
 Default effect order (user-reorderable):
 
 ```
-Input -> Diode Drive -> Distortion -> Amp Sim -> Noise Gate -> Delay -> Reverb -> Modulation -> EQ -> Output
+I -> Diode Drive -> Distortion -> Amp Sim -> Noise Gate -> Delay -> Reverb -> Modulation -> EQ -> O
 ```
 
 Each effect can be independently bypassed. The chain includes an always-on input DC blocker and output soft limiter.
 
-Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors -- switch between engines without losing your settings.
+Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors - switch between engines without losing your settings.
 
 ## Effects
 
@@ -112,6 +112,6 @@ openriffbox/
 
 ## License
 
-[GPLv3](LICENSE) -- free as in freedom.
+[GPLv3](LICENSE) - free as in freedom.
 
 Built with [JUCE](https://juce.com/) under GPLv3. Fonts licensed under [SIL OFL](https://scripts.sil.org/OFL).
