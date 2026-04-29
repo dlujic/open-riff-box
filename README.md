@@ -14,7 +14,7 @@ Plug in your guitar, choose your effects, and play. No installation required.
 
 ## Features
 
-- **14 effects across 8 slots** - Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, 3-Band EQ
+- **15 effects across 8 slots** - Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, Tremolo, 3-Band EQ
 - **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
 - **14 cabinet IRs** - Studio 57 to Vox Chime, plus No Cabinet and custom IR loading
 - **Real-time processing** - Low-latency audio via ASIO (WASAPI fallback)
@@ -64,6 +64,7 @@ Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors
 | | Flanger | Comb filter feedback with +/- polarity, soft saturation |
 | | Phaser | 4/8/12-stage allpass cascade, 100-4000 Hz sweep |
 | | Vibrato | Sine LFO, 100% wet pitch modulation |
+| | Tremolo | 3 modes (Photo / Bias / Harmonic), make-up gain, mono-safe stereo width |
 | EQ | 3-band semi-parametric | Low shelf, sweepable mid, high shelf, output trim |
 
 See **[docs/effects.md](docs/effects.md)** for detailed parameter documentation and tips.

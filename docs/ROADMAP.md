@@ -30,7 +30,7 @@
 |         Effect Processors (DSP)               |
 |  [Diode]->[Dist]->[Amp Sim S/G/P]->          |
 |  [Gate]->[Delay]->[Reverb Spr/Plate]->        |
-|  [Modulation Cho/Fla/Pha/Vib]->[EQ]          |
+|  [Modulation Cho/Fla/Pha/Vib/Tre]->[EQ]      |
 +----------------------------------------------+
 |              Audio I/O Layer                   |
 |    (JUCE AudioDeviceManager, ASIO/WASAPI)     |
@@ -48,7 +48,7 @@ Default order (8 visual rows):
 3: Noise Gate        (dynamics)
 4: Delay             (time-based)
 5: Reverb            (time-based)  [Spring / Plate]
-6: Modulation        (modulation)  [Chorus / Flanger / Phaser / Vibrato]
+6: Modulation        (modulation)  [Chorus / Flanger / Phaser / Vibrato / Tremolo]
 7: EQ                (utility)
 ```
 
@@ -83,9 +83,9 @@ openriffbox/
 
 --
 
-## Current State (v0.8)
+## Current State (v0.8.1)
 
-14 effects across 8 slots, all implemented:
+15 effects across 8 slots, all implemented:
 
 - **Diode Drive** -- TS808-style circuit model with Newton-Raphson solver
 - **Distortion** -- 4 modes (Overdrive, Tube Drive, Distortion, Metal)
@@ -101,6 +101,7 @@ openriffbox/
 - **Flanger** -- comb filter feedback with +/- polarity, soft saturation
 - **Phaser** -- 4/8/12-stage allpass cascade, 100-4000 Hz sweep
 - **Vibrato** -- sine LFO, 100% wet pitch modulation
+- **Tremolo** -- 3 modes: Photo (LDR comparator + asymmetric envelope), Bias (4x oversampled tanh + DC blocker), Harmonic (LR4 split at 400 Hz, antiphase bands). Mono-safe stereo width.
 - **EQ** -- 3-band semi-parametric with sweepable mid and output trim
 
 Additional features: built-in tuner, preset system (save/load/quick-switch), reorderable signal chain, 14 cabinet IRs + custom IR loading, output limiter.
@@ -111,7 +112,6 @@ Additional features: built-in tuner, preset system (save/load/quick-switch), reo
 
 ### More Effects
 - **Compressor** -- dynamics slot before drives for even saturation
-- **Tremolo** -- LFO amplitude modulation (5th Modulation tab)
 - **Wah** -- auto-wah, envelope filter, and manual modes
 - **Metronome** -- built-in click track (UI placeholder exists)
 

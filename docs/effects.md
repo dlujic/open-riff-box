@@ -371,6 +371,42 @@ This is a 100% wet effect by design -- it modulates pitch, not amplitude. For pi
 
 ---
 
+## Tremolo
+
+Periodic amplitude modulation -- the volume rises and falls at the LFO rate. Three topologically distinct modes model the historic tube-amp tremolo families: optical (Fender blackface), power-tube bias modulation (Princeton Reverb), and dual-band antiphase (Fender brownface harmonic).
+
+This is the only modulation effect in the chain that modulates **amplitude**, not pitch or timbre.
+
+### Parameters
+
+| Parameter | Range | Default | Description |
+|-----------|-------|---------|-------------|
+| Rate | 0.3-12 Hz (quadratic) | **~5 Hz** | LFO speed. The classic guitar-tremolo sweet spot is around 5-7 Hz. |
+| Depth | 0-100% | **50%** | Modulation amount. 0% = off, 100% = approaches gating (silence at trough). |
+| Mode | Photo / Bias / Harmonic | **Photo** | Tremolo topology (see below). Each mode has its own character. |
+| Width | 0-150 deg | **0 deg** | Stereo width. 0 = mono. Higher values offset the right channel's LFO phase for stereo motion. Capped at 150 deg so the effect doesn't collapse to nothing in mono. |
+| Output | -12 to +12 dB | **0 dB** | Make-up gain. Useful to compensate for any perceived volume drop at high depth, or to balance levels between presets. |
+
+### Modes
+
+- **Photo** -- Optical tremolo. Models the Fender blackface circuit (Deluxe Reverb, Twin) and the Demeter Tremulator -- a neon bulb illuminates a photoresistor (LDR) which attenuates the signal directly. The LDR's asymmetric thermal lag (faster rise than fall) gives the characteristic "rounded shoulder" envelope shape. Choppier and more punctuated than a textbook sine tremolo.
+
+- **Bias** -- Power-tube bias-modulation tremolo. Models the Fender Princeton Reverb (AA1164) and Vox AC30. Modulates the bias point of a tanh saturator, so the gain *and* the harmonic content vary together as the LFO swings. Subtle THD variation at peaks, mild crossover-like behaviour at troughs. Warmer and more "organic" than the optical mode. 4x oversampled.
+
+- **Harmonic** -- Dual-band antiphase amplitude modulation. Models the rare Fender brownface harmonic vibrato (6G16 Vibroverb). The signal is split into low and high bands at 400 Hz; the bands are then modulated 180 degrees out of phase -- when the bass ducks, the highs rise. Total volume stays roughly constant; what cycles is the spectral balance. The "watery, phasey" tremolo character.
+
+### Tips
+
+- **Classic Princeton sweep:** Photo mode, Rate ~5 Hz (default), Depth 50-65%. Smooth, even-tempo throb. Add make-up gain (+2 to +4 dB) if the perceived loudness drops too far.
+- **Slow swell:** Rate 1-2 Hz, Depth 70-100%. Long, deliberate dips between peaks. Works well behind reverb-heavy clean tones.
+- **Stutter / aggressive throb:** Rate 8-12 Hz, Depth 80-100%, Photo mode. Fast, choppy modulation that approaches ring-mod territory at the very top of the rate range.
+- **Warm bias-vary:** Bias mode, Rate 4-6 Hz, Depth 50-70%. Sounds less like volume modulation and more like a slow tube saturation breathing. Best with cleans or mild crunch -- the THD variation is subtle on heavy distortion.
+- **Brownface watery:** Harmonic mode, Rate 3-5 Hz, Depth 60-90%. Listen for tonal motion, not volume motion -- the chord cycles between dark and bright. Best with sustained chords (open or barred).
+- **Mono-safe stereo:** Push Width to 60-100 deg. The right channel's LFO lags, creating stereo motion. The 150 deg ceiling prevents the effect from disappearing when the mix is summed to mono (a true 180 deg pan would cancel out).
+- **Tremolo placement:** Tremolo sits in the modulation slot between Reverb and EQ in the default chain. If you want the reverb tail to *also* tremolo, put Tremolo before Reverb (drag in reorder mode). If you want a steady reverb under a tremoloing dry signal, leave the default order.
+
+---
+
 ## EQ (3-Band Equalizer)
 
 3-band semi-parametric equalizer with a sweepable mid frequency and output level trim. Placed last in the chain as a master tone shaper.
@@ -415,7 +451,7 @@ The default signal chain runs top to bottom:
 4. **Noise Gate** -- Placed after all drive stages to gate their noise
 5. **Delay** -- Analog delay
 6. **Reverb** -- Spring or Plate reverb
-7. **Modulation** -- Chorus, Flanger, Phaser, or Vibrato
+7. **Modulation** -- Chorus, Flanger, Phaser, Vibrato, or Tremolo
 8. **EQ** -- Final tone shaping
 
 The chain order can be rearranged using the reorder controls in the chain list sidebar.
