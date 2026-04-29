@@ -623,7 +623,7 @@ void PresetManager::applyPreset(const Preset& preset)
                 phaser->setDepth(getDouble(v, "depth", 0.5));
                 phaser->setFeedback(getDouble(v, "feedback", 0.3));
                 phaser->setMix(getDouble(v, "mix", 0.5));
-                phaser->setStages(static_cast<int>(getDouble(v, "stages", 0)));
+                phaser->setStages(getInt(v, "stages", 0));
             }
         }
     }
@@ -653,7 +653,7 @@ void PresetManager::applyPreset(const Preset& preset)
                 tremolo->setBypassed(getBool(v, "bypassed", true));
                 tremolo->setRate(getDouble(v, "rate", 0.4));
                 tremolo->setDepth(getDouble(v, "depth", 0.5));
-                tremolo->setMode(static_cast<int>(getDouble(v, "mode", 0)));
+                tremolo->setMode(getInt(v, "mode", 0));
                 tremolo->setWidth(getDouble(v, "width", 0.0));
                 tremolo->setOutput(getDouble(v, "output", 0.5));
             }

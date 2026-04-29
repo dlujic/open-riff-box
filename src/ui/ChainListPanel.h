@@ -122,32 +122,8 @@ private:
     // Update reorder mode button visibility
     void updateReorderButtons();
 
-    // Find the chain index of "Amp Silver" in the current chain order
-    int findAmpSimChainIndex() const;
-
-    // Find the chain index of "Amp Gold" in the current chain order
-    int findAmpSim2ChainIndex() const;
-
-    // Find the chain index of "Amp Platinum" in the current chain order
-    int findAmpSimPlatinumChainIndex() const;
-
-    // Find the chain index of "Spring Reverb" in the current chain order
-    int findSpringReverbChainIndex() const;
-
-    // Find the chain index of "Plate Reverb" in the current chain order
-    int findPlateReverbChainIndex() const;
-
-    // Find the chain index of "Flanger" in the current chain order
-    int findFlangerChainIndex() const;
-
-    // Find the chain index of "Phaser" in the current chain order
-    int findPhaserChainIndex() const;
-
-    // Find the chain index of "Vibrato" in the current chain order
-    int findVibratoChainIndex() const;
-
-    // Find the chain index of "Tremolo" in the current chain order
-    int findTremoloChainIndex() const;
+    // Returns the display name of the active modulation engine
+    juce::String activeModulationEffectName() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChainListPanel)
 };

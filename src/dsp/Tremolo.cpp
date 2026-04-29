@@ -149,6 +149,8 @@ void Tremolo::processPhoto(juce::AudioBuffer<float>& buffer)
 
 void Tremolo::processBias(juce::AudioBuffer<float>& buffer)
 {
+    if (oversampler == nullptr) return;
+
     const int numSamples  = buffer.getNumSamples();
     const int numChannels = juce::jmin(buffer.getNumChannels(), 2);
     const float fs = static_cast<float>(currentSampleRate);
