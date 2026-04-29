@@ -112,6 +112,7 @@ juce::Colour ChainListPanel::getColourForEffect(const juce::String& name)
     if (name == "Flanger")            return Theme::Colours::modulation;
     if (name == "Phaser")             return Theme::Colours::modulation;
     if (name == "Vibrato")            return Theme::Colours::modulation;
+    if (name == "Tremolo")            return Theme::Colours::modulation;
     if (name == "EQ")                 return Theme::Colours::neutral;
     return Theme::Colours::neutral;
 }
@@ -159,7 +160,7 @@ ChainListPanel::ChainListPanel(EffectChain& chain)
             else if (entries[static_cast<size_t>(i)].name == "Chorus")
             {
                 juce::String activeName = (activeModulationEngine == 0) ? "Chorus"
-                                        : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : "Vibrato";
+                                        : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : (activeModulationEngine == 3) ? "Vibrato" : "Tremolo";
                 auto* activeEffect = effectChain.getEffectByName(activeName);
                 if (activeEffect != nullptr)
                     bypassButtons[i].setToggleState(!activeEffect->isBypassed(), juce::dontSendNotification);
@@ -230,7 +231,7 @@ ChainListPanel::ChainListPanel(EffectChain& chain)
                 else if (i < numVisualSlots && entries[static_cast<size_t>(i)].name == "Chorus")
                 {
                     juce::String activeName = (activeModulationEngine == 0) ? "Chorus"
-                                        : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : "Vibrato";
+                                        : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : (activeModulationEngine == 3) ? "Vibrato" : "Tremolo";
                     auto* activeEffect = effectChain.getEffectByName(activeName);
                     if (activeEffect != nullptr)
                     {
@@ -408,10 +409,11 @@ void ChainListPanel::rebuildFromChain()
 
         // Skip Amp Gold and Amp Platinum - merged into the single Amp Silver visual row
         // Skip Plate Reverb - merged into the single Spring Reverb visual row
-        // Skip Flanger and Phaser - merged into the single Chorus visual row
+        // Skip Flanger, Phaser, Vibrato, Tremolo - merged into the single Chorus visual row
         if (effect->getName() == "Amp Gold" || effect->getName() == "Amp Platinum"
             || effect->getName() == "Plate Reverb" || effect->getName() == "Flanger"
-            || effect->getName() == "Phaser" || effect->getName() == "Vibrato")
+            || effect->getName() == "Phaser" || effect->getName() == "Vibrato"
+            || effect->getName() == "Tremolo")
             continue;
 
         entries.push_back({
@@ -459,7 +461,7 @@ void ChainListPanel::rebuildFromChain()
         else if (entries[static_cast<size_t>(i)].name == "Chorus")
         {
             juce::String activeName = (activeModulationEngine == 0) ? "Chorus"
-                                    : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : "Vibrato";
+                                    : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : (activeModulationEngine == 3) ? "Vibrato" : "Tremolo";
             auto* activeEffect = effectChain.getEffectByName(activeName);
             if (activeEffect != nullptr)
                 bypassButtons[i].setToggleState(!activeEffect->isBypassed(), juce::dontSendNotification);
@@ -597,9 +599,20 @@ int ChainListPanel::findVibratoChainIndex() const
     return -1;
 }
 
+int ChainListPanel::findTremoloChainIndex() const
+{
+    for (int i = 0; i < effectChain.getNumEffects(); ++i)
+    {
+        auto* e = effectChain.getEffect(i);
+        if (e != nullptr && e->getName() == "Tremolo")
+            return i;
+    }
+    return -1;
+}
+
 void ChainListPanel::setActiveModulationEngine(int engine)
 {
-    activeModulationEngine = juce::jlimit(0, 3, engine);
+    activeModulationEngine = juce::jlimit(0, 4, engine);
     refreshBypassStates();
 }
 
@@ -748,7 +761,7 @@ void ChainListPanel::refreshBypassStates()
         else if (entries[static_cast<size_t>(i)].name == "Chorus")
         {
             juce::String activeName = (activeModulationEngine == 0) ? "Chorus"
-                                    : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : "Vibrato";
+                                    : (activeModulationEngine == 1) ? "Flanger" : (activeModulationEngine == 2) ? "Phaser" : (activeModulationEngine == 3) ? "Vibrato" : "Tremolo";
             auto* activeEffect = effectChain.getEffectByName(activeName);
             if (activeEffect != nullptr)
                 bypassButtons[i].setToggleState(!activeEffect->isBypassed(), juce::dontSendNotification);

@@ -98,7 +98,7 @@ public:
     void setReverbEngine(int engine);
 
     //===========================================================================
-    // Modulation engine selection (0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato)
+    // Modulation engine selection (0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo)
     //===========================================================================
     int  getModulationEngine() const { return modulationEngine; }
     void setModulationEngine(int engine);
@@ -136,7 +136,7 @@ private:
     // Reverb engine: 0=Spring, 1=Plate
     int reverbEngine = 0;
 
-    // Modulation engine: 0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato
+    // Modulation engine: 0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo
     int modulationEngine = 0;
 
     // Cached latency: updated each processBlock so bypass changes are reflected

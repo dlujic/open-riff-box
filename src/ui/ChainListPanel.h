@@ -51,7 +51,7 @@ public:
     // Set the active reverb engine (0=Spring, 1=Plate) for bypass display
     void setActiveReverbEngine(int engine);
 
-    // Set the active modulation engine (0=Chorus, 1=Flanger, 2=Phaser) for bypass display
+    // Set the active modulation engine (0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo) for bypass display
     void setActiveModulationEngine(int engine);
 
 private:
@@ -80,9 +80,9 @@ private:
     bool tunerActive = false;
     bool metronomeActive = false;
 
-    // Visual-to-chain index mapping (entries skip "Amp Gold", "Amp Platinum", "Plate Reverb", "Flanger", "Phaser", "Vibrato")
-    static constexpr int kMaxSlots = 14;     // max chain effects (14 with Vibrato)
-    static constexpr int kNumVisualSlots = 8; // displayed rows (AmpGold, Platinum, PlateReverb, Flanger, Phaser, Vibrato hidden)
+    // Visual-to-chain index mapping (entries skip "Amp Gold", "Amp Platinum", "Plate Reverb", "Flanger", "Phaser", "Vibrato", "Tremolo")
+    static constexpr int kMaxSlots = 15;     // max chain effects (15 with Tremolo)
+    static constexpr int kNumVisualSlots = 8; // displayed rows (AmpGold, Platinum, PlateReverb, Flanger, Phaser, Vibrato, Tremolo hidden)
     int visualToChain[kMaxSlots] = {};
     int numVisualSlots = 0;
 
@@ -92,7 +92,7 @@ private:
     // Active reverb engine for bypass button targeting (0=Spring, 1=Plate)
     int activeReverbEngine = 0;
 
-    // Active modulation engine for bypass button targeting (0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato)
+    // Active modulation engine for bypass button targeting (0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo)
     int activeModulationEngine = 0;
 
     // Reorder mode
@@ -145,6 +145,9 @@ private:
 
     // Find the chain index of "Vibrato" in the current chain order
     int findVibratoChainIndex() const;
+
+    // Find the chain index of "Tremolo" in the current chain order
+    int findTremoloChainIndex() const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChainListPanel)
 };

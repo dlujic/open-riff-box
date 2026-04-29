@@ -18,6 +18,7 @@
 #include "dsp/Flanger.h"
 #include "dsp/Phaser.h"
 #include "dsp/Vibrato.h"
+#include "dsp/Tremolo.h"
 #include "dsp/Equalizer.h"
 
 MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
@@ -49,11 +50,12 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     auto* flanger = dynamic_cast<Flanger*>(chain.getEffectByName("Flanger"));
     auto* phaser = dynamic_cast<Phaser*>(chain.getEffectByName("Phaser"));
     auto* vibrato = dynamic_cast<Vibrato*>(chain.getEffectByName("Vibrato"));
+    auto* tremolo = dynamic_cast<Tremolo*>(chain.getEffectByName("Tremolo"));
     auto* equalizer = dynamic_cast<Equalizer*>(chain.getEffectByName("EQ"));
 
-    if (gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && equalizer != nullptr)
+    if (gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && tremolo != nullptr && equalizer != nullptr)
     {
-        detailPanel = std::make_unique<EffectDetailPanel>(*gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *equalizer);
+        detailPanel = std::make_unique<EffectDetailPanel>(*gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *tremolo, *equalizer);
         addAndMakeVisible(*detailPanel);
 
         // Sync bypass state between chain list and detail panels
@@ -473,6 +475,7 @@ int MainLayout::chainIndexToPanelIndex(const juce::String& effectName)
     if (effectName == "Flanger")      return 6;  // same panel (switcher)
     if (effectName == "Phaser")       return 6;  // same panel (switcher)
     if (effectName == "Vibrato")      return 6;  // same panel (switcher)
+    if (effectName == "Tremolo")      return 6;  // same panel (switcher)
     if (effectName == "EQ")           return 7;
     return 0;
 }

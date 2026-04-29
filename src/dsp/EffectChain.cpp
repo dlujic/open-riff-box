@@ -212,7 +212,7 @@ const std::vector<juce::String>& EffectChain::getDefaultOrder()
 {
     static const std::vector<juce::String> order = {
         "Diode Drive", "Distortion", "Amp Silver", "Amp Gold", "Amp Platinum",
-        "Noise Gate", "Delay", "Spring Reverb", "Plate Reverb", "Chorus", "Flanger", "Phaser", "Vibrato", "EQ"
+        "Noise Gate", "Delay", "Spring Reverb", "Plate Reverb", "Chorus", "Flanger", "Phaser", "Vibrato", "Tremolo", "EQ"
     };
     return order;
 }

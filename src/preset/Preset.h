@@ -11,7 +11,7 @@ struct Preset
     bool limiterEnabled = true;
     int  ampSimEngine       = 1;  // 0=Silver, 1=Gold (default Gold)
     int  reverbEngine       = 0;  // 0=Spring, 1=Plate (default Spring)
-    int  modulationEngine   = 0;  // 0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato (default Chorus)
+    int  modulationEngine   = 0;  // 0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo (default Chorus)
 
     // Effect name -> DynamicObject with "bypassed" bool + parameter key/value pairs
     // Keys match the XML attribute names in PluginProcessor serialization.

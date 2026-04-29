@@ -15,7 +15,7 @@
 #include "dsp/AmpSimPlatinum.h"
 #include "dsp/PlateReverb.h"
 
-EffectDetailPanel::EffectDetailPanel(NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Equalizer& equalizer)
+EffectDetailPanel::EffectDetailPanel(NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer)
 {
     noiseGatePanel       = std::make_unique<NoiseGatePanel>(gate);
     distortionPanel      = std::make_unique<DistortionPanel>(distortion);
@@ -23,7 +23,7 @@ EffectDetailPanel::EffectDetailPanel(NoiseGate& gate, Distortion& distortion, Di
     ampSimSwitcherPanel  = std::make_unique<AmpSimSwitcherPanel>(ampSimSilver, ampSimGold, ampSimPlatinum);
     delayPanel           = std::make_unique<DelayPanel>(analogDelay);
     reverbSwitcherPanel      = std::make_unique<ReverbSwitcherPanel>(springReverb, plateReverb);
-    modulationSwitcherPanel  = std::make_unique<ModulationSwitcherPanel>(chorus, flanger, phaser, vibrato);
+    modulationSwitcherPanel  = std::make_unique<ModulationSwitcherPanel>(chorus, flanger, phaser, vibrato, tremolo);
     eqPanel                  = std::make_unique<EQPanel>(equalizer);
 
     panels[0] = noiseGatePanel.get();

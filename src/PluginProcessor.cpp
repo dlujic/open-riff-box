@@ -13,6 +13,7 @@
 #include "dsp/Flanger.h"
 #include "dsp/Phaser.h"
 #include "dsp/Vibrato.h"
+#include "dsp/Tremolo.h"
 #include "dsp/Equalizer.h"
 
 //==============================================================================
@@ -34,6 +35,7 @@ OpenRiffBoxProcessor::OpenRiffBoxProcessor()
     effectChain.addEffect(std::make_unique<Flanger>());
     effectChain.addEffect(std::make_unique<Phaser>());
     effectChain.addEffect(std::make_unique<Vibrato>());
+    effectChain.addEffect(std::make_unique<Tremolo>());
     effectChain.addEffect(std::make_unique<Equalizer>());
 }
 
@@ -351,6 +353,17 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("tone",      vibrato->getTone());
     }
 
+    if (auto* tremolo = dynamic_cast<Tremolo*>(effectChain.getEffectByName("Tremolo")))
+    {
+        auto* e = xml->createNewChildElement("Tremolo");
+        e->setAttribute("bypassed", tremolo->isBypassed());
+        e->setAttribute("rate",     tremolo->getRate());
+        e->setAttribute("depth",    tremolo->getDepth());
+        e->setAttribute("mode",     tremolo->getMode());
+        e->setAttribute("width",    tremolo->getWidth());
+        e->setAttribute("output",   tremolo->getOutput());
+    }
+
     if (auto* eq = dynamic_cast<Equalizer*>(effectChain.getEffectByName("EQ")))
     {
         auto* e = xml->createNewChildElement("Equalizer");
@@ -376,7 +389,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     masterVolume.store(static_cast<float>(xml->getDoubleAttribute("masterVolume", 1.0)), std::memory_order_relaxed);
     ampSimEngine = juce::jlimit(0, 2, xml->getIntAttribute("ampSimEngine", 1));
     reverbEngine = juce::jlimit(0, 1, xml->getIntAttribute("reverbEngine", 0));
-    modulationEngine = juce::jlimit(0, 3, xml->getIntAttribute("modulationEngine", 0));
+    modulationEngine = juce::jlimit(0, 4, xml->getIntAttribute("modulationEngine", 0));
 
     // Restore chain order (if saved)
     auto orderStr = xml->getStringAttribute("chainOrder", "");
@@ -585,6 +598,19 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
         }
     }
 
+    if (auto* tremoloXml = xml->getChildByName("Tremolo"))
+    {
+        if (auto* tremolo = dynamic_cast<Tremolo*>(effectChain.getEffectByName("Tremolo")))
+        {
+            tremolo->setBypassed(tremoloXml->getBoolAttribute("bypassed", true));
+            tremolo->setRate(static_cast<float>(tremoloXml->getDoubleAttribute("rate", 0.4)));
+            tremolo->setDepth(static_cast<float>(tremoloXml->getDoubleAttribute("depth", 0.5)));
+            tremolo->setMode(tremoloXml->getIntAttribute("mode", 0));
+            tremolo->setWidth(static_cast<float>(tremoloXml->getDoubleAttribute("width", 0.0)));
+            tremolo->setOutput(static_cast<float>(tremoloXml->getDoubleAttribute("output", 0.5)));
+        }
+    }
+
     if (auto* eqXml = xml->getChildByName("Equalizer"))
     {
         if (auto* eq = dynamic_cast<Equalizer*>(effectChain.getEffectByName("EQ")))
@@ -665,22 +691,25 @@ void OpenRiffBoxProcessor::setModulationEngine(int engine)
     auto* flanger = effectChain.getEffectByName("Flanger");
     auto* phaser  = effectChain.getEffectByName("Phaser");
     auto* vibrato = effectChain.getEffectByName("Vibrato");
-    if (chorus == nullptr || flanger == nullptr || phaser == nullptr || vibrato == nullptr) return;
+    auto* tremolo = effectChain.getEffectByName("Tremolo");
+    if (chorus == nullptr || flanger == nullptr || phaser == nullptr || vibrato == nullptr || tremolo == nullptr) return;
 
     // Transfer the "slot bypass" state from the old active engine to the new one
     bool slotBypassed = false;
     if (modulationEngine == 0)      slotBypassed = chorus->isBypassed();
     else if (modulationEngine == 1) slotBypassed = flanger->isBypassed();
     else if (modulationEngine == 2) slotBypassed = phaser->isBypassed();
-    else                            slotBypassed = vibrato->isBypassed();
+    else if (modulationEngine == 3) slotBypassed = vibrato->isBypassed();
+    else                            slotBypassed = tremolo->isBypassed();
 
-    modulationEngine = juce::jlimit(0, 3, engine);
+    modulationEngine = juce::jlimit(0, 4, engine);
 
     // Force-bypass all inactive engines, enable the active one
-    chorus->setBypassed(modulationEngine == 0 ? slotBypassed : true);
+    chorus->setBypassed (modulationEngine == 0 ? slotBypassed : true);
     flanger->setBypassed(modulationEngine == 1 ? slotBypassed : true);
-    phaser->setBypassed(modulationEngine == 2 ? slotBypassed : true);
+    phaser->setBypassed (modulationEngine == 2 ? slotBypassed : true);
     vibrato->setBypassed(modulationEngine == 3 ? slotBypassed : true);
+    tremolo->setBypassed(modulationEngine == 4 ? slotBypassed : true);
 }
 
 void OpenRiffBoxProcessor::setTunerActive(bool active)

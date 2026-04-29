@@ -55,7 +55,7 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
         result.reverbEngine = 0;  // default Spring for old presets
 
     result.modulationEngine = static_cast<int>(root->getProperty("modulationEngine"));
-    if (result.modulationEngine < 0 || result.modulationEngine > 3)
+    if (result.modulationEngine < 0 || result.modulationEngine > 4)
         result.modulationEngine = 0;  // default Chorus for old presets
 
     auto effectsVar = root->getProperty("effects");

@@ -13,6 +13,7 @@
 #include "dsp/Flanger.h"
 #include "dsp/Phaser.h"
 #include "dsp/Vibrato.h"
+#include "dsp/Tremolo.h"
 #include "dsp/Equalizer.h"
 
 PresetManager::PresetManager(OpenRiffBoxProcessor& proc, const juce::File& presetsRoot)
@@ -353,6 +354,18 @@ Preset PresetManager::captureCurrentState() const
         });
     }
 
+    if (auto* tremolo = dynamic_cast<Tremolo*>(chain.getEffectByName("Tremolo")))
+    {
+        preset.effects["Tremolo"] = makeEffectVar({
+            { "bypassed", tremolo->isBypassed() },
+            { "rate",     tremolo->getRate() },
+            { "depth",    tremolo->getDepth() },
+            { "mode",     tremolo->getMode() },
+            { "width",    tremolo->getWidth() },
+            { "output",   tremolo->getOutput() }
+        });
+    }
+
     if (auto* eq = dynamic_cast<Equalizer*>(chain.getEffectByName("EQ")))
     {
         preset.effects["Equalizer"] = makeEffectVar({
@@ -626,6 +639,23 @@ void PresetManager::applyPreset(const Preset& preset)
                 vibrato->setRate(getDouble(v, "rate", 0.5));
                 vibrato->setDepth(getDouble(v, "depth", 0.3));
                 vibrato->setTone(getDouble(v, "tone", 0.7));
+            }
+        }
+    }
+
+    {
+        auto it = preset.effects.find("Tremolo");
+        if (it != preset.effects.end())
+        {
+            auto& v = it->second;
+            if (auto* tremolo = dynamic_cast<Tremolo*>(chain.getEffectByName("Tremolo")))
+            {
+                tremolo->setBypassed(getBool(v, "bypassed", true));
+                tremolo->setRate(getDouble(v, "rate", 0.4));
+                tremolo->setDepth(getDouble(v, "depth", 0.5));
+                tremolo->setMode(static_cast<int>(getDouble(v, "mode", 0)));
+                tremolo->setWidth(getDouble(v, "width", 0.0));
+                tremolo->setOutput(getDouble(v, "output", 0.5));
             }
         }
     }

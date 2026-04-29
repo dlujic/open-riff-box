@@ -3,14 +3,16 @@
 #include "FlangerPanel.h"
 #include "PhaserPanel.h"
 #include "VibratoPanel.h"
+#include "TremoloPanel.h"
 #include "Theme.h"
 
-ModulationSwitcherPanel::ModulationSwitcherPanel(Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato)
+ModulationSwitcherPanel::ModulationSwitcherPanel(Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo)
 {
     chorusPanel  = std::make_unique<ChorusPanel>(chorus);
     flangerPanel = std::make_unique<FlangerPanel>(flanger);
     phaserPanel  = std::make_unique<PhaserPanel>(phaser);
     vibratoPanel = std::make_unique<VibratoPanel>(vibrato);
+    tremoloPanel = std::make_unique<TremoloPanel>(tremolo);
 
     // Wire sub-panel callbacks through
     chorusPanel->onBypassToggled     = [this] { onBypassToggled(); };
@@ -21,11 +23,14 @@ ModulationSwitcherPanel::ModulationSwitcherPanel(Chorus& chorus, Flanger& flange
     phaserPanel->onParameterChanged  = [this] { onParameterChanged(); };
     vibratoPanel->onBypassToggled    = [this] { onBypassToggled(); };
     vibratoPanel->onParameterChanged = [this] { onParameterChanged(); };
+    tremoloPanel->onBypassToggled    = [this] { onBypassToggled(); };
+    tremoloPanel->onParameterChanged = [this] { onParameterChanged(); };
 
     addChildComponent(chorusPanel.get());
     addChildComponent(flangerPanel.get());
     addChildComponent(phaserPanel.get());
     addChildComponent(vibratoPanel.get());
+    addChildComponent(tremoloPanel.get());
 
     // Engine selector buttons (positioned over the sub-panel's right dead space)
     chorusTab.setButtonText("Chorus");
@@ -52,6 +57,12 @@ ModulationSwitcherPanel::ModulationSwitcherPanel(Chorus& chorus, Flanger& flange
     vibratoTab.onClick = [this] { setActiveEngine(3); onEngineChanged(3); };
     addAndMakeVisible(vibratoTab);
 
+    tremoloTab.setButtonText("Tremolo");
+    tremoloTab.setClickingTogglesState(false);
+    tremoloTab.setLookAndFeel(&btnLF);
+    tremoloTab.onClick = [this] { setActiveEngine(4); onEngineChanged(4); };
+    addAndMakeVisible(tremoloTab);
+
     // Default to Chorus
     setActiveEngine(0);
 }
@@ -60,12 +71,13 @@ ModulationSwitcherPanel::~ModulationSwitcherPanel() = default;
 
 void ModulationSwitcherPanel::setActiveEngine(int engine)
 {
-    activeEngine = juce::jlimit(0, 3, engine);
+    activeEngine = juce::jlimit(0, 4, engine);
 
     chorusPanel->setVisible(activeEngine == 0);
     flangerPanel->setVisible(activeEngine == 1);
     phaserPanel->setVisible(activeEngine == 2);
     vibratoPanel->setVisible(activeEngine == 3);
+    tremoloPanel->setVisible(activeEngine == 4);
 
     updateTabAppearance();
     resized();
@@ -77,6 +89,7 @@ void ModulationSwitcherPanel::syncFromDsp()
     flangerPanel->syncFromDsp();
     phaserPanel->syncFromDsp();
     vibratoPanel->syncFromDsp();
+    tremoloPanel->syncFromDsp();
 }
 
 void ModulationSwitcherPanel::paint(juce::Graphics&)
@@ -92,6 +105,7 @@ void ModulationSwitcherPanel::resized()
     if (flangerPanel != nullptr) flangerPanel->setBounds(area);
     if (phaserPanel  != nullptr) phaserPanel->setBounds(area);
     if (vibratoPanel != nullptr) vibratoPanel->setBounds(area);
+    if (tremoloPanel != nullptr) tremoloPanel->setBounds(area);
 
     // Engine buttons in the right-side dead space, vertically centred in slider zone.
     const int pad = Theme::Dims::panelPadding;
@@ -100,18 +114,20 @@ void ModulationSwitcherPanel::resized()
 
     const int sliderZoneH = Theme::Dims::sliderLabelHeight + Theme::Dims::sliderHeight
                           + Theme::Dims::sliderTextBoxH + 4;
-    const int totalBtnH = 4 * btnHeight + 3 * btnSpacing;
+    const int totalBtnH = 5 * btnHeight + 4 * btnSpacing;
     const int btnY = btnTopY + (sliderZoneH - totalBtnH) / 2;
 
-    chorusTab.setBounds(btnX, btnY, btnWidth, btnHeight);
-    flangerTab.setBounds(btnX, btnY + (btnHeight + btnSpacing), btnWidth, btnHeight);
-    phaserTab.setBounds(btnX, btnY + 2 * (btnHeight + btnSpacing), btnWidth, btnHeight);
-    vibratoTab.setBounds(btnX, btnY + 3 * (btnHeight + btnSpacing), btnWidth, btnHeight);
+    chorusTab.setBounds (btnX, btnY,                                       btnWidth, btnHeight);
+    flangerTab.setBounds(btnX, btnY +     (btnHeight + btnSpacing),        btnWidth, btnHeight);
+    phaserTab.setBounds (btnX, btnY + 2 * (btnHeight + btnSpacing),        btnWidth, btnHeight);
+    vibratoTab.setBounds(btnX, btnY + 3 * (btnHeight + btnSpacing),        btnWidth, btnHeight);
+    tremoloTab.setBounds(btnX, btnY + 4 * (btnHeight + btnSpacing),        btnWidth, btnHeight);
 
     chorusTab.toFront(false);
     flangerTab.toFront(false);
     phaserTab.toFront(false);
     vibratoTab.toFront(false);
+    tremoloTab.toFront(false);
 }
 
 void ModulationSwitcherPanel::updateTabAppearance()
@@ -120,6 +136,7 @@ void ModulationSwitcherPanel::updateTabAppearance()
     auto flangerColour = juce::Colour(0xff60a8d0);
     auto phaserColour  = juce::Colour(0xff9080d0);
     auto vibratoColour = juce::Colour(0xffe0a040);
+    auto tremoloColour = juce::Colour(0xffd06080);
 
     auto dimBg = juce::Colour(0xff2a2720);
 
@@ -141,4 +158,5 @@ void ModulationSwitcherPanel::updateTabAppearance()
     setTab(flangerTab, flangerColour, 1);
     setTab(phaserTab,  phaserColour,  2);
     setTab(vibratoTab, vibratoColour, 3);
+    setTab(tremoloTab, tremoloColour, 4);
 }

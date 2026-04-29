@@ -16,6 +16,7 @@ class Chorus;
 class Flanger;
 class Phaser;
 class Vibrato;
+class Tremolo;
 class Equalizer;
 class NoiseGatePanel;
 class DistortionPanel;
@@ -33,7 +34,7 @@ class PlateReverb;
 class EffectDetailPanel : public juce::Component
 {
 public:
-    EffectDetailPanel(NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Equalizer& equalizer);
+    EffectDetailPanel(NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer);
     ~EffectDetailPanel() override;
 
     // Panel indices: 0=Gate, 1=DiodeDrive, 2=Distortion, 3=AmpSim(Switcher),
