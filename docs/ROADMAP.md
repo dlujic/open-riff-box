@@ -84,7 +84,7 @@ openriffbox/
 
 --
 
-## Current State (v0.8.2)
+## Current State (v0.8.3)
 
 16 effects across 9 slots, all implemented:
 
@@ -106,7 +106,7 @@ openriffbox/
 - **Tremolo** -- 3 modes: Photo (LDR comparator + asymmetric envelope), Bias (4x oversampled tanh + DC blocker), Harmonic (LR4 split at 400 Hz, antiphase bands). Mono-safe stereo width.
 - **EQ** -- 3-band semi-parametric with sweepable mid and output trim
 
-Additional features: built-in tuner, preset system (save/load/quick-switch), reorderable signal chain, 14 cabinet IRs + custom IR loading, output limiter.
+Additional features: built-in tuner, built-in metronome (standalone only; woodblock click, tap tempo, time signatures), preset system (save/load/quick-switch), reorderable signal chain, 14 cabinet IRs + custom IR loading, output limiter.
 
 --
 
@@ -114,7 +114,6 @@ Additional features: built-in tuner, preset system (save/load/quick-switch), reo
 
 ### More Effects
 - **Wah** -- auto-wah, envelope filter, and manual modes
-- **Metronome** -- built-in click track (UI placeholder exists)
 
 ### Sound Quality
 - Knob response curves (logarithmic/S-curve mappings for more musical parameter feel)

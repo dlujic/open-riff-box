@@ -20,6 +20,7 @@ Plug in your guitar, choose your effects, and play. No installation required.
 - **Real-time processing** - Low-latency audio via ASIO (WASAPI fallback)
 - **Reorderable signal chain** - Move effects into any order, or reset to default
 - **Built-in tuner** - Pitch detection with analog VU-meter display
+- **Built-in metronome** - Woodblock click with accented downbeats, 30-300 BPM, tap tempo, time signatures (standalone only)
 - **Preset system** - Save, load, and quick-switch between 4 preset slots
 - **Portable** - Single folder, no installer, no registry. Unzip and run.
 - **Zero dependencies** - Statically linked, no runtime redistributables needed
