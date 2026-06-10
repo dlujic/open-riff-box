@@ -1,6 +1,14 @@
 #include "PlateReverb.h"
 #include <cmath>
 
+// Decay knob -> tank feedback gain. Quadratic on purpose: identical to the old
+// linear law at 0 and 0.5, but tops out at 0.8 (~5.8 s mid-band RT60, real-plate
+// territory) instead of hitting unity feedback at knob max.
+static float decayGainFromParam(float x)
+{
+    return 0.3f + (0.9f - 0.4f * x) * x;
+}
+
 PlateReverb::PlateReverb() = default;
 
 void PlateReverb::prepare(double sampleRate, int samplesPerBlock)
@@ -50,7 +58,7 @@ void PlateReverb::prepare(double sampleRate, int samplesPerBlock)
     mixSmoothed.reset(sampleRate, 0.02);
     widthSmoothed.reset(sampleRate, 0.02);
 
-    decaySmoothed.setCurrentAndTargetValue(0.3f + 0.7f * decayParam);
+    decaySmoothed.setCurrentAndTargetValue(decayGainFromParam(decayParam));
     mixSmoothed.setCurrentAndTargetValue(mixParam);
     widthSmoothed.setCurrentAndTargetValue(widthParam);
 
@@ -98,7 +106,7 @@ void PlateReverb::process(juce::AudioBuffer<float>& buffer)
 
     updateDelayTimes();
 
-    decaySmoothed.setTargetValue(0.3f + 0.7f * decayParam);
+    decaySmoothed.setTargetValue(decayGainFromParam(decayParam));
     mixSmoothed.setTargetValue(mixParam);
     widthSmoothed.setTargetValue(widthParam);
 
