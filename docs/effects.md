@@ -6,6 +6,42 @@ All percentage parameters (0-100%) map to internal 0-1 ranges. Default values ar
 
 ---
 
+## Compressor
+
+Evens out playing dynamics -- quiet notes come up, loud notes come down, sustain stretches out. Sits first in the chain (the classic pedalboard position) so the drive stages downstream receive a more consistent signal level.
+
+Under the hood this is a studio-style compressor with pedal-style controls: Sustain drives the detector into a fixed internal threshold (the harder you push, the more compression you get), and automatic makeup gain keeps the output level roughly matched to bypass. A gain reduction meter at the bottom of the panel shows how hard the compressor is working.
+
+### Parameters
+
+| Parameter | Range | Default | Description |
+|-----------|-------|---------|-------------|
+| Sustain | 0 to +30 dB | **~10 dB** | Compression amount. Drives the detector harder, lowering the effective threshold. More sustain = more squeeze. |
+| Attack | 2-50 ms (Opto: 10-120 ms) | **10 ms** | How quickly the compressor clamps down. Short = squashes the pick transient too. Longer = lets the pick through and levels the note body. |
+| Blend | 0-100% | **100%** | Parallel compression mix. 100% = fully compressed. Lower values mix the dry signal back in to restore picking dynamics while keeping the thickness. |
+| Level | -12 to +12 dB | **0 dB** | Output trim around the automatic makeup gain. Use it to match bypassed volume exactly on your rig. |
+| Mode | Studio / Squeeze / Opto | **Studio** | Compressor character (see below). |
+
+### Modes
+
+- **Studio** -- Clean, transparent VCA-style compression. Moderate 4:1 ratio with a wide soft knee, and a release that automatically tracks your playing -- fast on percussive passages, slow on sustained chords. The "always-on" mode: set it light and forget it.
+
+- **Squeeze** -- The classic squashy pedal compressor (Ross / Dyna Comp family). High 10:1 ratio and a harder knee. The pick attack gets clamped and the note blooms back up -- the chicken-pickin' spank. Obvious by design.
+
+- **Opto** -- Optical studio compressor character (LA-2A lineage). Gentle 3:1 ratio, very soft knee, slower attack, and a two-stage release with memory: a quick partial recovery followed by a long tail that stretches with deeper compression. Smooth and forgiving on cleans.
+
+### Tips
+
+- **Always-on sweetener:** The defaults (Studio, Sustain ~10 dB, Attack 10 ms). Aim for 3-6 dB on the gain reduction meter during hard strumming -- notes even out and sustain lifts without obvious pumping.
+- **Chicken pickin':** Squeeze mode, Sustain 15-20 dB, Attack 2-5 ms. Full squash-and-bloom on every note. Back the attack off to ~10 ms to keep a little pick definition.
+- **Parallel compression:** Crank Sustain to 20+ dB, then pull Blend down to 40-70%. The compressed signal thickens the tone underneath while the dry path keeps your dynamics. Works because the blend is phase-coherent -- no comb filtering.
+- **Smooth cleans:** Opto mode, Sustain 10-15 dB. The slow two-stage release breathes with the playing instead of pumping against it.
+- **Honest A/B:** Toggle bypass while watching your level. If engaged is noticeably louder, pull Level down -- a louder signal almost always sounds "better", which makes loudness-matched comparison the only honest one.
+- **Reading the meter:** 3-6 dB of reduction is transparent leveling, 6-10 dB is audible squeeze, beyond 10 dB is an effect in its own right (fine for Squeeze, probably too much for Studio).
+- **With high gain:** Heavy distortion already compresses, so a compressor in front mostly tightens the feel rather than adding sustain. Keep Sustain low (5-10 dB) or bypass it -- and let the Noise Gate (after the drives) deal with the extra noise a compressor brings up.
+
+---
+
 ## Noise Gate
 
 Cuts signal below a threshold to eliminate hum, buzz, and noise between playing. Uses a sidechain high-pass filter (150 Hz) to ignore low-frequency rumble when detecting signal level, plus 6 dB of hysteresis to prevent chattering at the threshold boundary.
@@ -445,14 +481,15 @@ These are handled automatically by the effect chain and don't have user controls
 
 The default signal chain runs top to bottom:
 
-1. **Diode Drive** -- Mid-boost overdrive
-2. **Distortion** -- Main distortion/gain stage
-3. **Amp Sim** -- Amplifier simulation (Silver / Gold / Platinum)
-4. **Noise Gate** -- Placed after all drive stages to gate their noise
-5. **Delay** -- Analog delay
-6. **Reverb** -- Spring or Plate reverb
-7. **Modulation** -- Chorus, Flanger, Phaser, Vibrato, or Tremolo
-8. **EQ** -- Final tone shaping
+1. **Compressor** -- Placed before the drives so they receive an evened-out signal
+2. **Diode Drive** -- Mid-boost overdrive
+3. **Distortion** -- Main distortion/gain stage
+4. **Amp Sim** -- Amplifier simulation (Silver / Gold / Platinum)
+5. **Noise Gate** -- Placed after all drive stages to gate their noise
+6. **Delay** -- Analog delay
+7. **Reverb** -- Spring or Plate reverb
+8. **Modulation** -- Chorus, Flanger, Phaser, Vibrato, or Tremolo
+9. **EQ** -- Final tone shaping
 
 The chain order can be rearranged using the reorder controls in the chain list sidebar.
 

@@ -28,7 +28,7 @@
 |   (ordered list of effects, bypass, reorder)  |
 +----------------------------------------------+
 |         Effect Processors (DSP)               |
-|  [Diode]->[Dist]->[Amp Sim S/G/P]->          |
+|  [Comp]->[Diode]->[Dist]->[Amp Sim S/G/P]->  |
 |  [Gate]->[Delay]->[Reverb Spr/Plate]->        |
 |  [Modulation Cho/Fla/Pha/Vib/Tre]->[EQ]      |
 +----------------------------------------------+
@@ -39,17 +39,18 @@
 
 ### Effect Chain (user-reorderable)
 
-Default order (8 visual rows):
+Default order (9 visual rows):
 
 ```
-0: Diode Drive       (drive)
-1: Distortion        (drive)
-2: Amp Sim           (drive)       [Silver / Gold / Platinum]
-3: Noise Gate        (dynamics)
-4: Delay             (time-based)
-5: Reverb            (time-based)  [Spring / Plate]
-6: Modulation        (modulation)  [Chorus / Flanger / Phaser / Vibrato / Tremolo]
-7: EQ                (utility)
+0: Compressor        (dynamics)
+1: Diode Drive       (drive)
+2: Distortion        (drive)
+3: Amp Sim           (drive)       [Silver / Gold / Platinum]
+4: Noise Gate        (dynamics)
+5: Delay             (time-based)
+6: Reverb            (time-based)  [Spring / Plate]
+7: Modulation        (modulation)  [Chorus / Flanger / Phaser / Vibrato / Tremolo]
+8: EQ                (utility)
 ```
 
 Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors. The inactive engine is always bypassed. Grouped engines move together during reorder.
@@ -83,10 +84,11 @@ openriffbox/
 
 --
 
-## Current State (v0.8.1)
+## Current State (v0.8.2)
 
-15 effects across 8 slots, all implemented:
+16 effects across 9 slots, all implemented:
 
+- **Compressor** -- feedforward log-domain design, 3 modes: Studio (transparent VCA, program-dependent release), Squeeze (high-ratio Dyna Comp squash), Opto (LA-2A-style two-stage release). Parallel blend, auto makeup, gain reduction meter.
 - **Diode Drive** -- TS808-style circuit model with Newton-Raphson solver
 - **Distortion** -- 4 modes (Overdrive, Tube Drive, Distortion, Metal)
 - **Amp Sim** -- 3 engines:
@@ -111,7 +113,6 @@ Additional features: built-in tuner, preset system (save/load/quick-switch), reo
 ## What's Next (in no specific order)
 
 ### More Effects
-- **Compressor** -- dynamics slot before drives for even saturation
 - **Wah** -- auto-wah, envelope filter, and manual modes
 - **Metronome** -- built-in click track (UI placeholder exists)
 

@@ -14,7 +14,7 @@ Plug in your guitar, choose your effects, and play. No installation required.
 
 ## Features
 
-- **15 effects across 8 slots** - Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, Tremolo, 3-Band EQ
+- **16 effects across 9 slots** - Compressor (3 modes), Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, Tremolo, 3-Band EQ
 - **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
 - **14 cabinet IRs** - Studio 57 to Vox Chime, plus No Cabinet and custom IR loading
 - **Real-time processing** - Low-latency audio via ASIO (WASAPI fallback)
@@ -40,7 +40,7 @@ Plug in your guitar, choose your effects, and play. No installation required.
 Default effect order (user-reorderable):
 
 ```
-I -> Diode Drive -> Distortion -> Amp Sim -> Noise Gate -> Delay -> Reverb -> Modulation -> EQ -> O
+I -> Compressor -> Diode Drive -> Distortion -> Amp Sim -> Noise Gate -> Delay -> Reverb -> Modulation -> EQ -> O
 ```
 
 Each effect can be independently bypassed. The chain includes an always-on input DC blocker and output soft limiter.
@@ -51,6 +51,7 @@ Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors
 
 | Slot | Effect | Description |
 |------|--------|-------------|
+| Compressor | 3 modes | Studio (transparent VCA), Squeeze (Dyna Comp squash), Opto (LA-2A-style); parallel blend, gain reduction meter |
 | Diode Drive | TS808-style circuit model | Op-amp + diode clipping, mid-focused overdrive |
 | Distortion | 4 modes | Overdrive, Tube Drive, Distortion, Metal (3-stage cascaded) |
 | Amp Sim | Silver | 3-band EQ, preamp boost, power amp, 14 cabinet IRs |
