@@ -1,6 +1,7 @@
 #include "PresetManager.h"
 #include "PluginProcessor.h"
 #include "dsp/EffectChain.h"
+#include "dsp/Compressor.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -196,6 +197,18 @@ Preset PresetManager::captureCurrentState() const
     };
 
     // Name-based lookup - position-independent (works with any chain order)
+    if (auto* comp = dynamic_cast<Compressor*>(chain.getEffectByName("Compressor")))
+    {
+        preset.effects["Compressor"] = makeEffectVar({
+            { "bypassed", comp->isBypassed() },
+            { "sustain",  comp->getSustain() },
+            { "attack",   comp->getAttack()  },
+            { "blend",    comp->getBlend()   },
+            { "level",    comp->getLevel()   },
+            { "mode",     comp->getMode()    }
+        });
+    }
+
     if (auto* ng = dynamic_cast<NoiseGate*>(chain.getEffectByName("Noise Gate")))
     {
         preset.effects["NoiseGate"] = makeEffectVar({
@@ -420,11 +433,47 @@ void PresetManager::applyPreset(const Preset& preset)
 
     // Apply chain order before setting params (so effects are in the right slots)
     if (!preset.chainOrder.empty())
-        chain.setEffectOrder(preset.chainOrder);
+    {
+        auto order = preset.chainOrder;
+        // Trap 2: old presets lack "Compressor"; appending at the end via
+        // setEffectOrder would park the row after EQ. Insert at the front instead.
+        bool hasComp = false;
+        for (auto& n : order) if (n == "Compressor") { hasComp = true; break; }
+        if (!hasComp)
+            order.insert(order.begin(), "Compressor");
+        chain.setEffectOrder(order);
+    }
     else
         chain.setEffectOrder(EffectChain::getDefaultOrder());
 
     // Name-based lookup - position-independent
+    {
+        auto it = preset.effects.find("Compressor");
+        if (it != preset.effects.end())
+        {
+            auto& v = it->second;
+            if (auto* comp = dynamic_cast<Compressor*>(chain.getEffectByName("Compressor")))
+            {
+                comp->setBypassed(getBool(v, "bypassed", true));
+                comp->setSustain(getDouble(v, "sustain", 0.35));
+                comp->setAttack (getDouble(v, "attack",  0.50));
+                comp->setBlend  (getDouble(v, "blend",   1.00));
+                comp->setLevel  (getDouble(v, "level",   0.50));
+                comp->setMode   (getInt   (v, "mode",    0));
+            }
+        }
+        else
+        {
+            // Old presets have no Compressor entry. Reset to defaults and bypass so
+            // they load cleanly without stale state from a prior session.
+            if (auto* comp = dynamic_cast<Compressor*>(chain.getEffectByName("Compressor")))
+            {
+                comp->setBypassed(true);
+                comp->resetToDefaults();
+            }
+        }
+    }
+
     {
         auto it = preset.effects.find("NoiseGate");
         if (it != preset.effects.end())

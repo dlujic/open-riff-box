@@ -5,6 +5,7 @@
 #include "Theme.h"
 #include "PluginProcessor.h"
 #include "preset/PresetManager.h"
+#include "dsp/Compressor.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -37,6 +38,7 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
 
     // Get DSP effect references for the detail panels (name-based, order-independent)
     auto& chain = processorRef.getEffectChain();
+    auto* compressor = dynamic_cast<Compressor*>(chain.getEffectByName("Compressor"));
     auto* gate       = dynamic_cast<NoiseGate*>(chain.getEffectByName("Noise Gate"));
     auto* diodeDrive = dynamic_cast<DiodeDrive*>(chain.getEffectByName("Diode Drive"));
     auto* distortion = dynamic_cast<Distortion*>(chain.getEffectByName("Distortion"));
@@ -53,9 +55,9 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     auto* tremolo = dynamic_cast<Tremolo*>(chain.getEffectByName("Tremolo"));
     auto* equalizer = dynamic_cast<Equalizer*>(chain.getEffectByName("EQ"));
 
-    if (gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && tremolo != nullptr && equalizer != nullptr)
+    if (compressor != nullptr && gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && tremolo != nullptr && equalizer != nullptr)
     {
-        detailPanel = std::make_unique<EffectDetailPanel>(*gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *tremolo, *equalizer);
+        detailPanel = std::make_unique<EffectDetailPanel>(*compressor, *gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *tremolo, *equalizer);
         addAndMakeVisible(*detailPanel);
 
         // Sync bypass state between chain list and detail panels
@@ -212,8 +214,8 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
         if (presetBar) presetBar->refreshSlots();
     };
 
-    // Default to Amp Sim on first load (visual index 2 = Amp Sim)
-    chainList.selectEffect(2);
+    // Default to Amp Sim on first load (visual index 3 = Amp Sim, after Compressor/Diode Drive/Distortion)
+    chainList.selectEffect(3);
 }
 
 MainLayout::~MainLayout()
@@ -462,20 +464,21 @@ int MainLayout::chainIndexToPanelIndex(const juce::String& effectName)
 {
     // Maps effect display name to its fixed index in EffectDetailPanel::panels[]
     // (panels are always created in default order, with amp sims merged)
-    if (effectName == "Noise Gate")   return 0;
-    if (effectName == "Diode Drive")  return 1;
-    if (effectName == "Distortion")   return 2;
-    if (effectName == "Amp Silver")       return 3;
-    if (effectName == "Amp Gold")         return 3;  // same panel (switcher)
-    if (effectName == "Amp Platinum") return 3;  // same panel (switcher)
-    if (effectName == "Delay")          return 4;
-    if (effectName == "Spring Reverb")  return 5;
-    if (effectName == "Plate Reverb")   return 5;  // same panel (switcher)
-    if (effectName == "Chorus")       return 6;
-    if (effectName == "Flanger")      return 6;  // same panel (switcher)
-    if (effectName == "Phaser")       return 6;  // same panel (switcher)
-    if (effectName == "Vibrato")      return 6;  // same panel (switcher)
-    if (effectName == "Tremolo")      return 6;  // same panel (switcher)
-    if (effectName == "EQ")           return 7;
+    if (effectName == "Compressor")   return 0;
+    if (effectName == "Noise Gate")   return 1;
+    if (effectName == "Diode Drive")  return 2;
+    if (effectName == "Distortion")   return 3;
+    if (effectName == "Amp Silver")   return 4;
+    if (effectName == "Amp Gold")     return 4;  // same panel (switcher)
+    if (effectName == "Amp Platinum") return 4;  // same panel (switcher)
+    if (effectName == "Delay")        return 5;
+    if (effectName == "Spring Reverb")return 6;
+    if (effectName == "Plate Reverb") return 6;  // same panel (switcher)
+    if (effectName == "Chorus")       return 7;
+    if (effectName == "Flanger")      return 7;  // same panel (switcher)
+    if (effectName == "Phaser")       return 7;  // same panel (switcher)
+    if (effectName == "Vibrato")      return 7;  // same panel (switcher)
+    if (effectName == "Tremolo")      return 7;  // same panel (switcher)
+    if (effectName == "EQ")           return 8;
     return 0;
 }

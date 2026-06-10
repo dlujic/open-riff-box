@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "dsp/Compressor.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -22,6 +23,7 @@ OpenRiffBoxProcessor::OpenRiffBoxProcessor()
                          .withInput ("Input",  juce::AudioChannelSet::stereo(), true)
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 {
+    effectChain.addEffect(std::make_unique<Compressor>());
     effectChain.addEffect(std::make_unique<DiodeDrive>());
     effectChain.addEffect(std::make_unique<Distortion>());
     effectChain.addEffect(std::make_unique<AmpSimSilver>());
@@ -189,6 +191,17 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         xml->setAttribute("chainOrder", orderStr);
     }
     // (default order: nothing to save)
+
+    if (auto* comp = dynamic_cast<Compressor*>(effectChain.getEffectByName("Compressor")))
+    {
+        auto* e = xml->createNewChildElement("Compressor");
+        e->setAttribute("bypassed", comp->isBypassed());
+        e->setAttribute("sustain",  comp->getSustain());
+        e->setAttribute("attack",   comp->getAttack());
+        e->setAttribute("blend",    comp->getBlend());
+        e->setAttribute("level",    comp->getLevel());
+        e->setAttribute("mode",     comp->getMode());
+    }
 
     // Name-based lookup - position-independent
     if (auto* ng = dynamic_cast<NoiseGate*>(effectChain.getEffectByName("Noise Gate")))
@@ -400,8 +413,29 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
         for (auto& t : tokens)
             if (t.isNotEmpty())
                 order.push_back(t);
+        // Trap 2: old saved orders predate Compressor. Insert it at the front so
+        // it lands in row 0 instead of being appended after EQ by setEffectOrder().
         if (!order.empty())
+        {
+            bool hasComp = false;
+            for (auto& n : order) if (n == "Compressor") { hasComp = true; break; }
+            if (!hasComp)
+                order.insert(order.begin(), "Compressor");
             effectChain.setEffectOrder(order);
+        }
+    }
+
+    if (auto* compXml = xml->getChildByName("Compressor"))
+    {
+        if (auto* comp = dynamic_cast<Compressor*>(effectChain.getEffectByName("Compressor")))
+        {
+            comp->setBypassed(compXml->getBoolAttribute("bypassed", true));
+            comp->setSustain(static_cast<float>(compXml->getDoubleAttribute("sustain", 0.35)));
+            comp->setAttack (static_cast<float>(compXml->getDoubleAttribute("attack",  0.50)));
+            comp->setBlend  (static_cast<float>(compXml->getDoubleAttribute("blend",   1.00)));
+            comp->setLevel  (static_cast<float>(compXml->getDoubleAttribute("level",   0.50)));
+            comp->setMode   (compXml->getIntAttribute("mode", 0));
+        }
     }
 
     // Name-based lookup - position-independent

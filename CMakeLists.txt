@@ -36,6 +36,7 @@ target_sources(OpenRiffBox
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/dsp/EffectChain.cpp
+        src/dsp/Compressor.cpp
         src/dsp/NoiseGate.cpp
         src/dsp/Distortion.cpp
         src/dsp/MetalDistortion.cpp
@@ -64,6 +65,7 @@ target_sources(OpenRiffBox
         src/ui/AmpSimSwitcherPanel.cpp
         src/ui/ChainListPanel.cpp
         src/ui/EffectDetailPanel.cpp
+        src/ui/CompressorPanel.cpp
         src/ui/NoiseGatePanel.cpp
         src/ui/DistortionPanel.cpp
         src/ui/DiodeDrivePanel.cpp

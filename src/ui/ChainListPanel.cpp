@@ -99,6 +99,7 @@ void ChainListPanel::IconButtonLF::drawButtonBackground(
 
 juce::Colour ChainListPanel::getColourForEffect(const juce::String& name)
 {
+    if (name == "Compressor")         return Theme::Colours::gate;
     if (name == "Noise Gate")         return Theme::Colours::gate;
     if (name == "Diode Drive")        return Theme::Colours::drive;
     if (name == "Distortion")         return Theme::Colours::distortion;
@@ -601,7 +602,7 @@ void ChainListPanel::resized()
 
     const int arrowW = reorderMode ? 20 : 0;
 
-    // Effects section (8 visual slots)
+    // Effects section (9 visual slots)
     for (int i = 0; i < kNumVisualSlots; ++i)
     {
         int y = i * rowH + btnMarginV;

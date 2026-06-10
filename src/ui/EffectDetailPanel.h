@@ -4,6 +4,7 @@
 #include <memory>
 #include <functional>
 
+class Compressor;
 class NoiseGate;
 class Distortion;
 class DiodeDrive;
@@ -18,6 +19,7 @@ class Phaser;
 class Vibrato;
 class Tremolo;
 class Equalizer;
+class CompressorPanel;
 class NoiseGatePanel;
 class DistortionPanel;
 class DiodeDrivePanel;
@@ -34,11 +36,11 @@ class PlateReverb;
 class EffectDetailPanel : public juce::Component
 {
 public:
-    EffectDetailPanel(NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer);
+    EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer);
     ~EffectDetailPanel() override;
 
-    // Panel indices: 0=Gate, 1=DiodeDrive, 2=Distortion, 3=AmpSim(Switcher),
-    //                4=Delay, 5=Reverb, 6=Chorus, 7=EQ
+    // Panel indices: 0=Compressor, 1=Gate, 2=DiodeDrive, 3=Distortion, 4=AmpSim(Switcher),
+    //                5=Delay, 6=Reverb, 7=Modulation, 8=EQ
     void showEffect(int index);
     void syncBypassStates();
 
@@ -61,6 +63,7 @@ public:
     void paint(juce::Graphics& g) override;
 
 private:
+    std::unique_ptr<CompressorPanel>      compressorPanel;
     std::unique_ptr<NoiseGatePanel>       noiseGatePanel;
     std::unique_ptr<DistortionPanel>      distortionPanel;
     std::unique_ptr<DiodeDrivePanel>      diodeDrivePanel;
@@ -70,7 +73,7 @@ private:
     std::unique_ptr<ModulationSwitcherPanel>  modulationSwitcherPanel;
     std::unique_ptr<EQPanel>                  eqPanel;
 
-    static constexpr int kNumPanels = 8;
+    static constexpr int kNumPanels = 9;
     juce::Component* panels[kNumPanels] = {};
     int currentIndex = -1;
 
