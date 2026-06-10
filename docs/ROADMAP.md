@@ -119,9 +119,18 @@ Additional features: built-in tuner, preset system (save/load/quick-switch), reo
 ### Sound Quality
 - Knob response curves (logarithmic/S-curve mappings for more musical parameter feel)
 - Platinum engine polish (master gain curve, parameter response tuning, possible CPU optimization)
+- Parallel mix law for Delay/Reverb (low priority, exploratory) -- optional dry-at-unity
+  mix mode (aux-send style: dry stays untouched, wet layers on top) instead of the
+  equal-power crossfade. Mimics console aux routing for time-based effects. Spends
+  headroom, so it wants the input trim to land first. Try it and judge by ear.
 
 ### DAW Integration
 - VST3 plugin polish (works on Windows, some quirks to iron out)
+- Global input trim + meter guidance -- the chain is voiced for instrument-level input
+  (peaks around -20 dBFS). Line-level or pre-processed signals (an amp sim upstream in
+  the DAW chain, FX-only use behind another rig) run ~20 dB hot, pin the output limiter,
+  and overdrive level-sensitive stages like delay/flanger feedback saturation. A trim
+  knob ahead of the chain fixes gain staging in both DAW and standalone.
 - Migrate all parameters to JUCE AudioProcessorValueTreeState
 - Full DAW automation support
 - MIDI CC mapping
