@@ -7,7 +7,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_audio_plugin_client/juce_audio_plugin_client.h>
 
-#if JUCE_DEBUG
+#if ORB_OFFLINE_TOOLS
 #include "tools/OfflineProcessor.h"
 #endif
 
@@ -201,9 +201,10 @@ public:
 
     void initialise(const juce::String& commandLine) override
     {
-#if JUCE_DEBUG
+        juce::ignoreUnused(commandLine);
+
+#if ORB_OFFLINE_TOOLS
         // Offline file processor: --process-file input.flac output.flac [options]
-        // Processes audio through AmpSimGold/AmpSimPlatinum without launching the GUI.
         if (runOfflineProcessor(getCommandLineParameterArray()))
         {
             quit();

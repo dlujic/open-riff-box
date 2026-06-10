@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(OpenRiffBox VERSION 0.1.0 LANGUAGES CXX)
 
+option(ORB_OFFLINE_TOOLS "Enable offline file processor" OFF)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -139,6 +141,7 @@ target_compile_definitions(OpenRiffBox
         JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1
     PRIVATE
         $<$<CONFIG:Debug>:JUCE_DEBUG=1>
+        $<IF:$<OR:$<CONFIG:Debug>,$<BOOL:${ORB_OFFLINE_TOOLS}>>,ORB_OFFLINE_TOOLS=1,ORB_OFFLINE_TOOLS=0>
 )
 
 # Post-build: assemble portable distribution folder

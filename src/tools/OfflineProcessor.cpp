@@ -1,10 +1,14 @@
 #include "OfflineProcessor.h"
 
-#if JUCE_DEBUG
+#if ORB_OFFLINE_TOOLS
 
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <juce_audio_processors/juce_audio_processors.h>
 #include "../dsp/AmpSimGold.h"
 #include "../dsp/AmpSimPlatinum.h"
+#include "../PluginProcessor.h"
+#include "../preset/Preset.h"
+#include "../preset/PresetState.h"
 
 #ifdef _WIN32
   #include <windows.h>
@@ -37,29 +41,249 @@ bool runOfflineProcessor(const juce::StringArray& args)
     if (idx + 2 >= args.size())
     {
         std::cout << "Usage: OpenRiffBox --process-file input.flac output.flac [options]\n"
-                  << "\nOptions:\n"
-                  << "  --gain <0-1>           Preamp gain (default: 1.0)\n"
-                  << "  --bass <0-1>           Bass (default: 0.5)\n"
-                  << "  --mid <0-1>            Mid (default: 0.6)\n"
-                  << "  --treble <0-1>         Treble (default: 0.5)\n"
-                  << "  --mic-position <0-1>   Mic position (default: 0.5)\n"
-                  << "  --cabinet <0-15>       Cabinet (0-13=named, 14=none, 15=custom)\n"
-                  << "  --boost                Enable preamp boost (Gold only)\n"
-                  << "\nGold internal overrides (experimentation):\n"
-                  << "  --x-char-gain <float>  Character stage input gain (default: 0.3)\n"
-                  << "  --x-drive-exp <float>  Preamp drive curve exponent (default: 2.0)\n"
-                  << "  --x-nfb-gain <float>   Push-pull NFB gain (default: 0.05)\n"
-                  << "\n  --engine <gold|platinum> Engine (default: gold)\n"
-                  << "  --ov-level <0-1>       OV Level (Platinum, default: 0.7)\n"
-                  << "  --master <0-1>         Master volume (Platinum, default: 0.3)\n"
-                  << "  --gain-mode <0-1>      0=GAIN1, 1=GAIN2 (Platinum)\n"
-                  << "  --stage-limit <1-9>    Tap after stage N (Platinum debug)\n"
+                  << "\nMode 1 - amp-direct (legacy, GPU harness uses these flags):\n"
+                  << "  --engine <gold|platinum>   Engine (default: gold)\n"
+                  << "  --gain <0-1>               Preamp gain (default: 1.0)\n"
+                  << "  --bass <0-1>               Bass (default: 0.5)\n"
+                  << "  --mid <0-1>                Mid (default: 0.6)\n"
+                  << "  --treble <0-1>             Treble (default: 0.5)\n"
+                  << "  --speaker-drive <0-1>      Speaker drive (default: 0.2)\n"
+                  << "  --brightness <0-1>         Brightness (default: 0.6)\n"
+                  << "  --mic-position <0-1>       Mic position (default: 0.5)\n"
+                  << "  --cabinet <0-15>           Cabinet (0-13=named, 14=none, 15=custom)\n"
+                  << "  --boost                    Enable preamp boost (Gold only)\n"
+                  << "  --ov-level <0-1>           OV Level (Platinum, default: 0.7)\n"
+                  << "  --master <0-1>             Master volume (Platinum, default: 0.3)\n"
+                  << "  --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum)\n"
+                  << "  --stage-limit <1-9>        Tap after stage N (Platinum debug)\n"
+                  << "\n  Gold internal overrides:\n"
+                  << "  --x-char-gain <float>      Character stage input gain (default: 0.3)\n"
+                  << "  --x-drive-exp <float>      Preamp drive curve exponent (default: 2.0)\n"
+                  << "  --x-nfb-gain <float>       Push-pull NFB gain (default: 0.05)\n"
+                  << "\nMode 2 - full chain via preset JSON (cannot combine with mode 1 flags):\n"
+                  << "  --chain-config <preset.json>\n"
                   << std::flush;
         return true;
     }
 
     juce::File inputFile(args[idx + 1]);
     juce::File outputFile(args[idx + 2]);
+
+    //--------------------------------------------------------------------------
+    // Mode 2: full chain via preset JSON
+    //--------------------------------------------------------------------------
+    int chainConfigIdx = args.indexOf("--chain-config");
+    if (chainConfigIdx >= 0)
+    {
+        // Reject any combination with legacy amp flags
+        static const char* legacyFlags[] = {
+            "--engine", "--gain", "--bass", "--mid", "--treble",
+            "--speaker-drive", "--brightness", "--mic-position", "--cabinet", "--boost",
+            "--ov-level", "--master", "--gain-mode", "--stage-limit",
+            "--x-char-gain", "--x-drive-exp", "--x-nfb-gain", nullptr
+        };
+        for (int f = 0; legacyFlags[f] != nullptr; ++f)
+        {
+            if (args.contains(legacyFlags[f]))
+            {
+                std::cerr << "ERROR: --chain-config cannot be combined with "
+                          << legacyFlags[f] << std::endl;
+                return true;
+            }
+        }
+
+        if (chainConfigIdx + 1 >= args.size())
+        {
+            std::cerr << "ERROR: --chain-config requires a file path argument" << std::endl;
+            return true;
+        }
+
+        juce::File presetFile(args[chainConfigIdx + 1]);
+        Preset preset;
+        if (!Preset::loadFromFile(presetFile, preset))
+        {
+            std::cerr << "ERROR: Cannot load preset: "
+                      << presetFile.getFullPathName() << std::endl;
+            return true;
+        }
+
+        juce::AudioFormatManager fmtMgr;
+        fmtMgr.registerBasicFormats();
+
+        std::unique_ptr<juce::AudioFormatReader> rdr(fmtMgr.createReaderFor(inputFile));
+        if (!rdr)
+        {
+            std::cerr << "ERROR: Cannot read " << inputFile.getFullPathName() << std::endl;
+            return true;
+        }
+
+        const double fileSampleRate = rdr->sampleRate;
+        const int    totalFrames    = static_cast<int>(rdr->lengthInSamples);
+        const int    numChannels    = static_cast<int>(rdr->numChannels);
+        const int    bitsPerSample  = static_cast<int>(rdr->bitsPerSample);
+        const int    outChannels    = juce::jmax(2, numChannels);
+
+        static const char* engineNames[] = { "Silver", "Gold", "Platinum" };
+        static const char* reverbNames[] = { "Spring", "Plate" };
+        static const char* modNames[]    = { "Chorus", "Flanger", "Phaser", "Vibrato", "Tremolo" };
+
+        int ampEng = juce::jlimit(0, 2, preset.ampSimEngine);
+        int revEng = juce::jlimit(0, 1, preset.reverbEngine);
+        int modEng = juce::jlimit(0, 4, preset.modulationEngine);
+
+        std::cout << "\n=== OpenRiffBox Offline Processor (chain-config mode) ===\n"
+                  << "Preset:  " << preset.name << "\n"
+                  << "Input:   " << inputFile.getFullPathName() << "\n"
+                  << "Output:  " << outputFile.getFullPathName() << "\n"
+                  << "Format:  " << fileSampleRate << " Hz, " << bitsPerSample << "-bit, "
+                  << numChannels << "ch, " << (totalFrames / fileSampleRate) << "s\n"
+                  << "Amp:     " << engineNames[ampEng] << "\n"
+                  << "Reverb:  " << reverbNames[revEng] << "\n"
+                  << "Modulation: " << modNames[modEng] << "\n"
+                  << std::flush;
+
+        auto processor = std::make_unique<OpenRiffBoxProcessor>();
+        PresetState::apply(preset, *processor);
+        processor->setAudioActive(true);
+
+        const int blockSize = 512;
+        processor->prepareToPlay(fileSampleRate, blockSize);
+
+        const int latency = processor->getLatencySamples();
+        std::cout << "Latency: " << latency << " samples ("
+                  << (1000.0 * latency / fileSampleRate) << " ms)\n"
+                  << "\nChain effects:\n";
+
+        auto& chain = processor->getEffectChain();
+        for (const auto& name : chain.getEffectOrder())
+        {
+            auto* eff = chain.getEffectByName(name);
+            std::cout << "  " << name
+                      << (eff && !eff->isBypassed() ? " [active]" : " [bypassed]") << "\n";
+        }
+        std::cout << "\nProcessing...\n" << std::flush;
+
+        // Read input
+        juce::AudioBuffer<float> inputBuffer(outChannels, totalFrames);
+        inputBuffer.clear();
+        rdr->read(&inputBuffer, 0, totalFrames, 0, true, true);
+        rdr.reset();
+        if (numChannels == 1)
+            inputBuffer.copyFrom(1, 0, inputBuffer, 0, 0, totalFrames);
+
+        // Pad and process
+        const int paddedFrames = totalFrames + latency;
+        juce::AudioBuffer<float> paddedInput(outChannels, paddedFrames);
+        paddedInput.clear();
+        for (int ch = 0; ch < outChannels; ++ch)
+            paddedInput.copyFrom(ch, 0, inputBuffer, ch, 0, totalFrames);
+
+        juce::AudioBuffer<float> fullOutput(outChannels, paddedFrames);
+        fullOutput.clear();
+
+        juce::MidiBuffer midiBuffer;
+        int framesProcessed = 0;
+        int nextProgressPct = 10;
+
+        while (framesProcessed < paddedFrames)
+        {
+            const int framesToProcess = juce::jmin(blockSize, paddedFrames - framesProcessed);
+
+            if (framesToProcess < blockSize)
+            {
+                juce::AudioBuffer<float> partialBlock(outChannels, framesToProcess);
+                for (int ch = 0; ch < outChannels; ++ch)
+                    partialBlock.copyFrom(ch, 0, paddedInput, ch, framesProcessed, framesToProcess);
+
+                midiBuffer.clear();
+                processor->processBlock(partialBlock, midiBuffer);
+
+                for (int ch = 0; ch < outChannels; ++ch)
+                    fullOutput.copyFrom(ch, framesProcessed, partialBlock, ch, 0, framesToProcess);
+            }
+            else
+            {
+                juce::AudioBuffer<float> block(outChannels, blockSize);
+                for (int ch = 0; ch < outChannels; ++ch)
+                    block.copyFrom(ch, 0, paddedInput, ch, framesProcessed, blockSize);
+
+                midiBuffer.clear();
+                processor->processBlock(block, midiBuffer);
+
+                for (int ch = 0; ch < outChannels; ++ch)
+                    fullOutput.copyFrom(ch, framesProcessed, block, ch, 0, blockSize);
+            }
+
+            framesProcessed += framesToProcess;
+
+            int pct = static_cast<int>(100.0 * static_cast<double>(framesProcessed) / paddedFrames);
+            if (pct >= nextProgressPct)
+            {
+                std::cout << "  " << pct << "%\n" << std::flush;
+                nextProgressPct += 10;
+            }
+        }
+
+        // Trim latency
+        juce::AudioBuffer<float> finalOutput(outChannels, totalFrames);
+        for (int ch = 0; ch < outChannels; ++ch)
+            finalOutput.copyFrom(ch, 0, fullOutput, ch, latency, totalFrames);
+
+        // Write output
+        outputFile.deleteFile();
+        std::unique_ptr<juce::FileOutputStream> outStream(outputFile.createOutputStream());
+        if (!outStream)
+        {
+            std::cerr << "ERROR: Cannot write to " << outputFile.getFullPathName() << std::endl;
+            return true;
+        }
+
+        auto* fmt = fmtMgr.findFormatForFileExtension(outputFile.getFileExtension());
+        if (!fmt)
+        {
+            std::cerr << "ERROR: Unsupported output format: "
+                      << outputFile.getFileExtension() << std::endl;
+            return true;
+        }
+
+        int outBits = outputFile.getFileExtension().equalsIgnoreCase(".flac") ? 24 : bitsPerSample;
+        std::unique_ptr<juce::AudioFormatWriter> writer(
+            fmt->createWriterFor(outStream.release(), fileSampleRate,
+                                 static_cast<unsigned int>(outChannels), outBits, {}, 0));
+        if (!writer)
+        {
+            std::cerr << "ERROR: Cannot create writer for "
+                      << outputFile.getFullPathName() << std::endl;
+            return true;
+        }
+
+        writer->writeFromAudioSampleBuffer(finalOutput, 0, totalFrames);
+        writer.reset();
+
+        float rmsL  = finalOutput.getRMSLevel(0, 0, totalFrames);
+        float rmsR  = finalOutput.getRMSLevel(1, 0, totalFrames);
+        float peakL = finalOutput.getMagnitude(0, 0, totalFrames);
+        float peakR = finalOutput.getMagnitude(1, 0, totalFrames);
+
+        std::cout << "\nDone! Wrote " << totalFrames << " frames ("
+                  << (totalFrames / fileSampleRate) << "s) to "
+                  << outputFile.getFileName() << "\n"
+                  << "  RMS:  L=" << juce::Decibels::gainToDecibels(rmsL, -100.0f) << " dB"
+                  << "  R=" << juce::Decibels::gainToDecibels(rmsR, -100.0f) << " dB\n"
+                  << "  Peak: L=" << juce::Decibels::gainToDecibels(peakL, -100.0f) << " dB"
+                  << "  R=" << juce::Decibels::gainToDecibels(peakR, -100.0f) << " dB\n"
+                  << std::endl;
+
+        // Echo the as-applied config so Python harnesses can see setter clamping
+        Preset applied = PresetState::capture(*processor);
+        applied.name   = preset.name;
+        std::cout << "===CHAIN-CONFIG-BEGIN===\n"
+                  << Preset::writeToString(applied).toStdString()
+                  << "\n===CHAIN-CONFIG-END===\n"
+                  << std::flush;
+
+        return true;
+    }
 
     //--------------------------------------------------------------------------
     // Parse parameters

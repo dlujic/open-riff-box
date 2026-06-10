@@ -1,4 +1,5 @@
 build/
+build-offline/
 .vscode/
 .vs/
 Thumbs.db
