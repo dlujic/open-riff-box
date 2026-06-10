@@ -518,12 +518,12 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
         {
             amp2->setBypassed(amp2Xml->getBoolAttribute("bypassed", true));
             amp2->setGain(static_cast<float>(amp2Xml->getDoubleAttribute("gain", 0.4)));
-            amp2->setBass(static_cast<float>(amp2Xml->getDoubleAttribute("bass", 0.85)));
-            amp2->setMid(static_cast<float>(amp2Xml->getDoubleAttribute("mid", 0.85)));
-            amp2->setTreble(static_cast<float>(amp2Xml->getDoubleAttribute("treble", 0.85)));
+            amp2->setBass(static_cast<float>(amp2Xml->getDoubleAttribute("bass", 0.5)));
+            amp2->setMid(static_cast<float>(amp2Xml->getDoubleAttribute("mid", 0.6)));
+            amp2->setTreble(static_cast<float>(amp2Xml->getDoubleAttribute("treble", 0.5)));
             amp2->setPreampBoost(amp2Xml->getBoolAttribute("preampBoost", false));
             amp2->setSpeakerDrive(static_cast<float>(amp2Xml->getDoubleAttribute("speakerDrive", 0.2)));
-            amp2->setPresence(static_cast<float>(amp2Xml->getDoubleAttribute("presence", 0.92)));
+            amp2->setPresence(static_cast<float>(amp2Xml->getDoubleAttribute("presence", 0.70)));
             amp2->setCabinetType(amp2Xml->getIntAttribute("cabinetType", 0));
             amp2->setBrightness(static_cast<float>(amp2Xml->getDoubleAttribute("brightness", 0.6)));
             amp2->setMicPosition(static_cast<float>(amp2Xml->getDoubleAttribute("micPosition", 0.5)));

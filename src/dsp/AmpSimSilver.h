@@ -76,7 +76,7 @@ private:
     float trebleParam        = 0.5f;
     float speakerDriveParam  = 0.2f;
     float brightnessParam    = 0.5f;
-    float micPositionParam   = 0.5f;
+    float micPositionParam   = 0.3f;
     std::atomic<bool> preampBoostParam { false };
     std::atomic<int>  cabinetTypeParam { 0 };
 

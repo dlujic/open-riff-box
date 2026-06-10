@@ -418,12 +418,12 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
             {
                 amp2->setBypassed(getBool(v, "bypassed", true));
                 amp2->setGain(getDouble(v, "gain", 0.4));
-                amp2->setBass(getDouble(v, "bass", 0.85));
-                amp2->setMid(getDouble(v, "mid", 0.85));
-                amp2->setTreble(getDouble(v, "treble", 0.85));
+                amp2->setBass(getDouble(v, "bass", 0.5));
+                amp2->setMid(getDouble(v, "mid", 0.6));
+                amp2->setTreble(getDouble(v, "treble", 0.5));
                 amp2->setPreampBoost(getBool(v, "preampBoost", false));
                 amp2->setSpeakerDrive(getDouble(v, "speakerDrive", 0.2));
-                amp2->setPresence(getDouble(v, "presence", 0.92));
+                amp2->setPresence(getDouble(v, "presence", 0.70));
                 amp2->setCabinetType(getInt(v, "cabinetType", 0));
                 amp2->setBrightness(getDouble(v, "brightness", 0.6));
                 amp2->setMicPosition(getDouble(v, "micPosition", 0.5));
