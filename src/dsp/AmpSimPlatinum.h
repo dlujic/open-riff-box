@@ -184,7 +184,7 @@ private:
     std::atomic<int>  gainModeParam    { 0 };
     std::atomic<int>  cabinetTypeParam { 0 };
 
-    float cabTrimDb = 0.0f;
+    float cabTrimDb = -6.5f;   // matches Silver's output level at default settings
     juce::SmoothedValue<float> cabMakeupGain { 1.0f };
 
     float lastGainParam        = -1.0f;

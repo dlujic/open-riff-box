@@ -880,7 +880,7 @@ void AmpSimPlatinum::resetToDefaults()
     setGainMode(0);
     setCabinetType(0);
     setMicPosition(0.5f);
-    setCabTrim(0.0f);
+    setCabTrim(-6.5f);
 }
 
 //==============================================================================

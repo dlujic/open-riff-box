@@ -545,7 +545,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             plat->setGainMode(platXml->getIntAttribute("gainMode", 0));
             plat->setCabinetType(platXml->getIntAttribute("cabinetType", 0));
             plat->setMicPosition(static_cast<float>(platXml->getDoubleAttribute("micPosition", 0.5)));
-            plat->setCabTrim(static_cast<float>(platXml->getDoubleAttribute("cabTrim", 0.0)));
+            plat->setCabTrim(static_cast<float>(platXml->getDoubleAttribute("cabTrim", -6.5)));
         }
     }
 

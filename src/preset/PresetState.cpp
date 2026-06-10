@@ -449,7 +449,7 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 plat->setGainMode(getInt(v, "gainMode", 0));
                 plat->setCabinetType(getInt(v, "cabinetType", 0));
                 plat->setMicPosition(getDouble(v, "micPosition", 0.5));
-                plat->setCabTrim(static_cast<float>(getDouble(v, "cabTrim", 0.0)));
+                plat->setCabTrim(static_cast<float>(getDouble(v, "cabTrim", -6.5)));
             }
         }
         else
