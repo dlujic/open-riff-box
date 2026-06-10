@@ -238,7 +238,7 @@ void DiodeDrive::resetToDefaults()
 {
     setDrive(0.5f);
     setTone(0.5f);
-    setLevel(0.70f);
+    setLevel(0.50f);
 }
 
 //==============================================================================

@@ -61,7 +61,7 @@ private:
 
     float driveParam = 0.5f;
     float toneParam  = 0.5f;
-    float levelParam = 0.7f;
+    float levelParam = 0.5f;
 
     juce::SmoothedValue<float> levelSmoothed;
 

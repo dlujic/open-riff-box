@@ -474,7 +474,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             dd->setBypassed(ddXml->getBoolAttribute("bypassed", true));
             dd->setDrive(static_cast<float>(ddXml->getDoubleAttribute("drive", 0.5)));
             dd->setTone(static_cast<float>(ddXml->getDoubleAttribute("tone", 0.5)));
-            dd->setLevel(static_cast<float>(ddXml->getDoubleAttribute("level", 0.7)));
+            dd->setLevel(static_cast<float>(ddXml->getDoubleAttribute("level", 0.5)));
         }
     }
 

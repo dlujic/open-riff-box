@@ -362,7 +362,7 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 dd->setBypassed(getBool(v, "bypassed", true));
                 dd->setDrive(getDouble(v, "drive", 0.5));
                 dd->setTone(getDouble(v, "tone", 0.5));
-                dd->setLevel(getDouble(v, "level", 0.7));
+                dd->setLevel(getDouble(v, "level", 0.5));
             }
         }
     }
