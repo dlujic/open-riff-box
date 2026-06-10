@@ -91,6 +91,7 @@ target_sources(OpenRiffBox
         src/ui/SettingsLookAndFeel.h
         src/preset/Preset.cpp
         src/preset/PresetManager.cpp
+        src/preset/PresetState.cpp
         src/tools/OfflineProcessor.cpp
 )
 

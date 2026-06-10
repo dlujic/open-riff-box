@@ -9,7 +9,7 @@ struct Preset
     juce::String author;
     juce::String date;
     bool limiterEnabled = true;
-    int  ampSimEngine       = 1;  // 0=Silver, 1=Gold (default Gold)
+    int  ampSimEngine       = 1;  // 0=Silver, 1=Gold (default Gold), 2=Platinum
     int  reverbEngine       = 0;  // 0=Spring, 1=Plate (default Spring)
     int  modulationEngine   = 0;  // 0=Chorus, 1=Flanger, 2=Phaser, 3=Vibrato, 4=Tremolo (default Chorus)
 
