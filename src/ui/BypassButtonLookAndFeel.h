@@ -136,8 +136,12 @@ public:
                               (jewelRadius - 1.0f) * 2.0f, (jewelRadius - 1.0f) * 2.0f, 0.5f);
             }
 
-            // Effect name (left) + status text (right)
+            // Effect name (left) + status text (right). Status strings are
+            // overridable per-button ("onText"/"offText") for non-bypass uses
+            // like the metronome transport.
             auto textArea = bounds.withTrimmedLeft(36.0f);
+            const juce::String onText  = button.getProperties().getWithDefault("onText",  "ON").toString();
+            const juce::String offText = button.getProperties().getWithDefault("offText", "BYPASSED").toString();
 
             if (isOn && enabled)
             {
@@ -145,10 +149,9 @@ public:
                 g.setFont(juce::Font(juce::FontOptions(14.5f, juce::Font::bold)));
                 g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
 
-                // "ON" right-aligned
                 g.setColour(ledColour.brighter(0.3f));
                 g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
-                g.drawText("ON", textArea.withTrimmedRight(4.0f), juce::Justification::centredRight, true);
+                g.drawText(onText, textArea.withTrimmedRight(4.0f), juce::Justification::centredRight, true);
             }
             else
             {
@@ -156,10 +159,9 @@ public:
                 g.setFont(juce::Font(juce::FontOptions(14.5f, juce::Font::bold)));
                 g.drawText(button.getButtonText(), textArea, juce::Justification::centredLeft, true);
 
-                // "BYPASSED" right-aligned
                 g.setColour(juce::Colour(0xff585048));
                 g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::plain)));
-                g.drawText("BYPASSED", textArea.withTrimmedRight(4.0f), juce::Justification::centredRight, true);
+                g.drawText(offText, textArea.withTrimmedRight(4.0f), juce::Justification::centredRight, true);
             }
 
             // Mouseover: subtle brighten

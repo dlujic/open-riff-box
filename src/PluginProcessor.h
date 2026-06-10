@@ -4,6 +4,7 @@
 #include <atomic>
 #include "dsp/EffectChain.h"
 #include "dsp/TunerEngine.h"
+#include "dsp/MetronomeEngine.h"
 
 class OpenRiffBoxProcessor : public juce::AudioProcessor
 {
@@ -86,6 +87,11 @@ public:
     bool isTunerActive() const { return tunerActive.load(std::memory_order_acquire); }
 
     //===========================================================================
+    // Metronome (standalone-only -- engine is always present, UI is guarded)
+    //===========================================================================
+    MetronomeEngine& getMetronomeEngine() { return metronomeEngine; }
+
+    //===========================================================================
     // Amp Sim engine selection (0=Silver/AmpSimSilver, 1=Gold/AmpSimGold, 2=Platinum/AmpSimPlatinum)
     //===========================================================================
     int  getAmpSimEngine() const { return ampSimEngine; }
@@ -112,6 +118,7 @@ private:
     EffectChain effectChain;
     TunerEngine tunerEngine;
     std::atomic<bool> tunerActive { false };
+    MetronomeEngine metronomeEngine;
 
     double currentSampleRate  = 44100.0;
     int    currentBlockSize   = 512;

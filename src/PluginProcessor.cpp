@@ -51,12 +51,14 @@ void OpenRiffBoxProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     setLatencySamples(effectChain.getTotalLatencySamples());
 
     tunerEngine.prepare(sampleRate);
+    metronomeEngine.prepare(sampleRate);
 }
 
 void OpenRiffBoxProcessor::releaseResources()
 {
     effectChain.reset();
     tunerEngine.reset();
+    metronomeEngine.reset();
 }
 
 //==============================================================================
@@ -119,6 +121,11 @@ void OpenRiffBoxProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         }
     }
 
+    // Click sums into the buffer after effects, before master volume.
+    // This keeps the click out of the effects chain (no reverb on the click),
+    // while master volume and the output limiter still apply to it.
+    metronomeEngine.process(buffer);
+
     // Master volume (after effects, before limiter)
     {
         float vol = masterVolume.load(std::memory_order_relaxed);
@@ -177,6 +184,11 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
     xml->setAttribute("ampSimEngine", ampSimEngine);
     xml->setAttribute("reverbEngine", reverbEngine);
     xml->setAttribute("modulationEngine", modulationEngine);
+    // Metronome state -- not a tone setting, so stored in app XML rather than presets.
+    // Running state is intentionally not persisted (always starts stopped).
+    xml->setAttribute("metronomeBpm",    metronomeEngine.getBpm());
+    xml->setAttribute("metronomeBeats",  metronomeEngine.getBeatsPerBar());
+    xml->setAttribute("metronomeVolume", static_cast<double>(metronomeEngine.getVolume()));
 
     // Save chain order (only if non-default)
     if (!effectChain.isDefaultOrder())
@@ -403,6 +415,9 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     ampSimEngine = juce::jlimit(0, 2, xml->getIntAttribute("ampSimEngine", 1));
     reverbEngine = juce::jlimit(0, 1, xml->getIntAttribute("reverbEngine", 0));
     modulationEngine = juce::jlimit(0, 4, xml->getIntAttribute("modulationEngine", 0));
+    metronomeEngine.setBpm(xml->getIntAttribute("metronomeBpm", 120));
+    metronomeEngine.setBeatsPerBar(xml->getIntAttribute("metronomeBeats", 4));
+    metronomeEngine.setVolume(static_cast<float>(xml->getDoubleAttribute("metronomeVolume", 0.2)));
 
     // Restore chain order (if saved)
     auto orderStr = xml->getStringAttribute("chainOrder", "");

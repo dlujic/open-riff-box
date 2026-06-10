@@ -349,7 +349,7 @@ ChainListPanel::ChainListPanel(EffectChain& chain)
     };
     addAndMakeVisible(tunerButton);
 
-    // Metronome button
+    // Metronome button (standalone-only -- DAWs have their own metronome)
     metronomeButton.setButtonText("Metronome");
     metronomeButton.setLookAndFeel(&bypassLF);
     metronomeButton.getProperties().set("noLed", true);
@@ -357,7 +357,11 @@ ChainListPanel::ChainListPanel(EffectChain& chain)
     metronomeButton.onClick = [this] {
         listeners.call(&Listener::metronomeClicked);
     };
+#if JucePlugin_Build_Standalone
     addAndMakeVisible(metronomeButton);
+#else
+    addChildComponent(metronomeButton);  // hidden in VST3
+#endif
 
     // Presets button
     presetsButton.setButtonText("Presets");
@@ -635,12 +639,19 @@ void ChainListPanel::resized()
         }
     }
 
-    // All utility/system buttons pinned to the bottom (4 rows)
+    // Utility/system buttons pinned to the bottom.
+    // Metronome is standalone-only; in VST3 the bottom cluster collapses to 3 rows.
     int bottomW = getWidth() - btnMarginL - btnMarginR;
+#if JucePlugin_Build_Standalone
     tunerButton.setBounds(btnMarginL, getHeight() - rowH * 4 + btnMarginV, bottomW, rowH - btnMarginV * 2);
     metronomeButton.setBounds(btnMarginL, getHeight() - rowH * 3 + btnMarginV, bottomW, rowH - btnMarginV * 2);
     presetsButton.setBounds(btnMarginL, getHeight() - rowH * 2 + btnMarginV, bottomW, rowH - btnMarginV * 2);
     settingsButton.setBounds(btnMarginL, getHeight() - rowH + btnMarginV, bottomW, rowH - btnMarginV * 2);
+#else
+    tunerButton.setBounds(btnMarginL, getHeight() - rowH * 3 + btnMarginV, bottomW, rowH - btnMarginV * 2);
+    presetsButton.setBounds(btnMarginL, getHeight() - rowH * 2 + btnMarginV, bottomW, rowH - btnMarginV * 2);
+    settingsButton.setBounds(btnMarginL, getHeight() - rowH + btnMarginV, bottomW, rowH - btnMarginV * 2);
+#endif
 }
 
 void ChainListPanel::refreshBypassStates()

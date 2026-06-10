@@ -57,7 +57,9 @@ target_sources(OpenRiffBox
         src/dsp/Equalizer.cpp
         src/dsp/WaveshaperEngine.cpp
         src/dsp/TunerEngine.cpp
+        src/dsp/MetronomeEngine.cpp
         src/ui/TunerPanel.cpp
+        src/ui/MetronomePanel.cpp
         src/ui/TopBar.cpp
         src/ui/AmpSimSilverPanel.cpp
         src/ui/AmpSimGoldPanel.cpp

@@ -11,6 +11,9 @@
 #include "SidebarPanel.h"
 #include "PresetBar.h"
 #include "PresetBrowserPanel.h"
+#if JucePlugin_Build_Standalone
+#include "MetronomePanel.h"
+#endif
 
 class OpenRiffBoxProcessor;
 class PresetManager;
@@ -53,7 +56,12 @@ private:
     std::unique_ptr<TunerPanel> tunerPanel;
     bool tunerPanelVisible = false;
 
+#if JucePlugin_Build_Standalone
+    std::unique_ptr<MetronomePanel> metronomePanel;
+#else
+    // VST3: metronome button is hidden; this keeps metronomeClicked()/resized() compiling.
     std::unique_ptr<PlaceholderPanel> metronomePanel;
+#endif
     bool metronomePanelVisible = false;
 
     void refreshAllUI();

@@ -1,4 +1,7 @@
 #include "MainLayout.h"
+#if JucePlugin_Build_Standalone
+#include "MetronomePanel.h"
+#endif
 #include "AmpSimSwitcherPanel.h"
 #include "ReverbSwitcherPanel.h"
 #include "ModulationSwitcherPanel.h"
@@ -157,7 +160,11 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     tunerPanel = std::make_unique<TunerPanel>(processorRef.getTunerEngine());
     addChildComponent(*tunerPanel);
 
+#if JucePlugin_Build_Standalone
+    metronomePanel = std::make_unique<MetronomePanel>(processorRef.getMetronomeEngine());
+#else
     metronomePanel = std::make_unique<PlaceholderPanel>("Metronome");
+#endif
     addChildComponent(*metronomePanel);
 
     // Preset system
