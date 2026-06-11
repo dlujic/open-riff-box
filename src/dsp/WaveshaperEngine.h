@@ -90,6 +90,17 @@ public:
     // Removes the need for the tanh soft-limiter. Use with SignFoldSigmoid coefficients.
     void setSignFold(bool enabled);
 
+    // Triode-style asymmetric transfer function. When enabled it replaces the
+    // polynomial entirely: y = k * (tanh(d*x + a) - tanh(a)).
+    // The bias a shifts the operating point up the tanh curve so one polarity
+    // saturates earlier than the other - the stage itself produces even
+    // harmonics, which the odd-symmetric sign-fold cannot. k normalises the
+    // small-signal slope to smallSignalGain so chain gain staging is unchanged.
+    // Output is asymmetric/DC-shifted by design; the caller must follow the
+    // stage with a coupling cap (HPF).
+    void setTriodeShaper(float smallSignalGain, float kneeDrive, float bias);
+    void clearTriodeShaper();
+
     //===========================================================================
     // Parameters (all safe to call from message thread, smoothed on audio thread)
     //===========================================================================
@@ -120,6 +131,13 @@ private:
     bool signFoldEnabled = false;
     bool useChebyshevBasis = false;
     float coefficients[11] = {};
+
+    // Triode shaper state (takes precedence over the polynomial when enabled)
+    bool  triodeEnabled  = false;
+    float triodeDrive    = 9.0f;
+    float triodeBias     = 0.0f;
+    float triodeTanhBias = 0.0f;  // tanh(triodeBias), cached
+    float triodeNorm     = 1.0f;  // normalises f'(0) to the requested gain
 
     // Domain mapping for Chebyshev evaluation
     static constexpr float kChebXMax = 1.3f;

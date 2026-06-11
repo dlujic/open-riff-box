@@ -327,6 +327,22 @@ void WaveshaperEngine::setSignFold(bool enabled)
     signFoldEnabled = enabled;
 }
 
+void WaveshaperEngine::setTriodeShaper(float smallSignalGain, float kneeDrive, float bias)
+{
+    triodeDrive    = juce::jmax(0.1f, kneeDrive);
+    triodeBias     = bias;
+    triodeTanhBias = std::tanh(bias);
+    // f'(0) = norm * drive * sech^2(bias); solve norm for the requested gain
+    const float sech2 = 1.0f - triodeTanhBias * triodeTanhBias;
+    triodeNorm     = smallSignalGain / (triodeDrive * sech2);
+    triodeEnabled  = true;
+}
+
+void WaveshaperEngine::clearTriodeShaper()
+{
+    triodeEnabled = false;
+}
+
 //==============================================================================
 // Parameter setters
 //==============================================================================
@@ -509,7 +525,13 @@ float WaveshaperEngine::processSample(float input)
     // 2. Mix input with feedback
     float signal = input * gain + delayed * feedback;
 
-    if (signFoldEnabled)
+    if (triodeEnabled)
+    {
+        // 3+4. Pre-shape, then biased-tanh triode curve (bounded, no clamp needed)
+        signal = preShape(signal);
+        signal = triodeNorm * (std::tanh(triodeDrive * signal + triodeBias) - triodeTanhBias);
+    }
+    else if (signFoldEnabled)
     {
         // 3. Pre-shape on full (signed) signal
         signal = preShape(signal);
@@ -586,7 +608,21 @@ void WaveshaperEngine::processOversampledBlock(float* samples, int numSamples)
         //----------------------------------------------------------------------
         float signal = inputSample * gain + delayed * feedback;
 
-        if (signFoldEnabled)
+        if (triodeEnabled)
+        {
+            //------------------------------------------------------------------
+            // Triode path: biased tanh, asymmetric clip levels per polarity.
+            // Even harmonics from the stage itself. Output is DC-shifted by
+            // design - the caller's coupling cap recentres it.
+            //------------------------------------------------------------------
+
+            // 3. Pre-shape on full (signed) signal
+            signal = preShape(signal);
+
+            // 4. Biased-tanh transfer (bounded, no domain clamp needed)
+            signal = triodeNorm * (std::tanh(triodeDrive * signal + triodeBias) - triodeTanhBias);
+        }
+        else if (signFoldEnabled)
         {
             //------------------------------------------------------------------
             // Sign-fold path: polynomial handles positive input only.
