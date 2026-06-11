@@ -32,9 +32,18 @@ public:
     void setPresence(float value);       // 0-1 (sweeps NFB LPF: 0=tight/dark, 1=open/present)
     void setCabTrim(float dB);           // -12 to +12
 
-    void setInternalCharacterGain(float g);   // character stage inputGain (default 0.3)
-    void setInternalDriveExponent(float e);   // preamp drive curve exponent (default 2.0 = quadratic)
-    void setInternalNfbGain(float g);         // push-pull NFB gain (default 0.05)
+    void setInternalCharacterGain(float g);   // character stage inputGain (default 0.93)
+    void setInternalDriveExponent(float e);   // preamp drive curve exponent (default 0.75)
+    void setInternalNfbGain(float g);         // push-pull NFB gain (default 0.12)
+
+#if ORB_OFFLINE_TOOLS
+    // Offline-only diagnostic overrides for subsystem isolation renders.
+    // Call before prepare(). Returns false on unknown key.
+    // Keys: fb, moddepth, preshape, enginelpf, tonelpf, midscoop, xfmrlpf,
+    //       xfmrsat, sag, charbypass, preamppoly, chargain, driveexp, nfbgain,
+    //       drivescale, xfmrasym
+    bool setDiagnostic(const juce::String& key, float value);
+#endif
 
     float getGain()         const { return gainParam; }
     float getBass()         const { return bassParam; }
@@ -182,6 +191,27 @@ private:
     float internalCharacterGain = 0.93f;
     float internalDriveExponent = 0.75f;
     float internalNfbGain       = 0.12f;
+
+#if ORB_OFFLINE_TOOLS
+    // Diagnostic toggles; defaults reproduce stock behavior exactly.
+    struct Diag
+    {
+        float fbOverride        = -1.0f;  // preamp+character feedback amount; <0 = stock law
+        float modDepthOverride  = -1.0f;  // feedback-read micro-mod depth; <0 = engine default
+        float preShapeScale     = 1.0f;   // scales every stage's pre-shaper intensity
+        bool  enginePostFilter  = true;   // preamp/character 12 kHz post-LPFs
+        bool  toneLpfOn         = true;   // gain-tracking darkening LPF
+        bool  midScoopOn        = true;
+        bool  xfmrLpfOn         = true;   // 7.5 kHz transformer LPF
+        bool  xfmrSatOn         = true;   // transformer tanh saturation
+        bool  sagOn             = true;
+        bool  charBypass        = false;  // skip character stage entirely
+        bool  preampPolySigmoid = false;  // preamp poly: SignFoldSigmoid instead of Chebyshev
+        float driveScaleMul     = 1.0f;   // multiplier on the preamp drive law
+        float xfmrAsym          = 1.2f;   // transformer pos/neg saturation ratio
+    };
+    Diag diag;
+#endif
     juce::SmoothedValue<float> cabMakeupGain { 1.0f };
 
     float lastGainParam          = -1.0f;

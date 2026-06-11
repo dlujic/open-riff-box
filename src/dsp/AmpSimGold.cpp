@@ -107,6 +107,13 @@ void AmpSimGold::prepare(double sampleRate, int samplesPerBlock)
     characterL.setFeedbackDelayLength(3);
     characterR.setFeedbackDelayLength(3);
 
+#if ORB_OFFLINE_TOOLS
+    if (diag.modDepthOverride >= 0.0f)
+        for (auto* e : { &preampL, &preampR, &characterL, &characterR,
+                         &powerAmpPosL, &powerAmpPosR, &powerAmpNegL, &powerAmpNegR })
+            e->setModulationDepth(diag.modDepthOverride);
+#endif
+
     configurePreampEngines();
     configureCharacterEngines();
     configurePowerAmpEngines();
@@ -134,6 +141,13 @@ void AmpSimGold::prepare(double sampleRate, int samplesPerBlock)
     *xfmrHpfR.coefficients = *xfmrHpfL.coefficients;
     *xfmrLpfL.coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 7500.0f);
     *xfmrLpfR.coefficients = *xfmrLpfL.coefficients;
+#if ORB_OFFLINE_TOOLS
+    if (!diag.xfmrLpfOn)
+    {
+        *xfmrLpfL.coefficients = juce::dsp::IIR::Coefficients<float>(1.0f, 0.0f, 1.0f, 0.0f);
+        *xfmrLpfR.coefficients = *xfmrLpfL.coefficients;
+    }
+#endif
 	
     lastGainParam = -1.0f;
     lastBassParam = -1.0f;
@@ -352,7 +366,12 @@ void AmpSimGold::process(juce::AudioBuffer<float>& buffer)
         //----------------------------------------------------------------------
         // Stage 3: Character WaveshaperEngine
         //----------------------------------------------------------------------
+#if ORB_OFFLINE_TOOLS
+        if (!diag.charBypass)
+            characterEngine.processRaw(samples, osNumSamples);
+#else
         characterEngine.processRaw(samples, osNumSamples);
+#endif
 
         //----------------------------------------------------------------------
         // Coupling cap HPF after character
@@ -365,6 +384,10 @@ void AmpSimGold::process(juce::AudioBuffer<float>& buffer)
         //----------------------------------------------------------------------
         {
             float sagAmount = 0.35f * currentSpeakerDrive;
+#if ORB_OFFLINE_TOOLS
+            if (!diag.sagOn)
+                sagAmount = 0.0f;
+#endif
             for (int i = 0; i < osNumSamples; ++i)
             {
                 float envelope = std::abs(samples[i]);
@@ -393,7 +416,11 @@ void AmpSimGold::process(juce::AudioBuffer<float>& buffer)
             auto& xfmrLpf     = (ch == 0) ? xfmrLpfL : xfmrLpfR;
             auto& nfbFiltered = (ch == 0) ? nfbFilteredStateL : nfbFilteredStateR;
             float satDrive = 0.8f + 0.8f * currentSpeakerDrive;
+#if ORB_OFFLINE_TOOLS
+            float posSat = satDrive * diag.xfmrAsym;
+#else
             float posSat = satDrive * 1.2f;
+#endif
             float negSat = satDrive * 1.0f;
 
             for (int i = 0; i < osNumSamples; ++i)
@@ -412,10 +439,15 @@ void AmpSimGold::process(juce::AudioBuffer<float>& buffer)
 
                 rawOut = xfmrHpf.processSample(rawOut);
                 rawOut = xfmrLpf.processSample(rawOut);
-                if (rawOut >= 0.0f)
-                    rawOut = std::tanh(rawOut * posSat);
-                else
-                    rawOut = std::tanh(rawOut * negSat);
+#if ORB_OFFLINE_TOOLS
+                if (diag.xfmrSatOn)
+#endif
+                {
+                    if (rawOut >= 0.0f)
+                        rawOut = std::tanh(rawOut * posSat);
+                    else
+                        rawOut = std::tanh(rawOut * negSat);
+                }
 
                 samples[i] = rawOut;
             }
@@ -528,6 +560,29 @@ void AmpSimGold::setInternalCharacterGain(float g)  { internalCharacterGain = ju
 void AmpSimGold::setInternalDriveExponent(float e)   { internalDriveExponent = juce::jlimit(0.5f, 4.0f, e); }
 void AmpSimGold::setInternalNfbGain(float g)         { internalNfbGain = juce::jlimit(0.0f, 0.5f, g); }
 
+#if ORB_OFFLINE_TOOLS
+bool AmpSimGold::setDiagnostic(const juce::String& key, float value)
+{
+    if (key == "fb")         { diag.fbOverride = value;                 return true; }
+    if (key == "moddepth")   { diag.modDepthOverride = value;           return true; }
+    if (key == "preshape")   { diag.preShapeScale = value;              return true; }
+    if (key == "enginelpf")  { diag.enginePostFilter = value >= 0.5f;   return true; }
+    if (key == "tonelpf")    { diag.toneLpfOn = value >= 0.5f;          return true; }
+    if (key == "midscoop")   { diag.midScoopOn = value >= 0.5f;         return true; }
+    if (key == "xfmrlpf")    { diag.xfmrLpfOn = value >= 0.5f;          return true; }
+    if (key == "xfmrsat")    { diag.xfmrSatOn = value >= 0.5f;          return true; }
+    if (key == "sag")        { diag.sagOn = value >= 0.5f;              return true; }
+    if (key == "charbypass") { diag.charBypass = value >= 0.5f;         return true; }
+    if (key == "preamppoly") { diag.preampPolySigmoid = value >= 0.5f;  return true; }
+    if (key == "chargain")   { setInternalCharacterGain(value);         return true; }
+    if (key == "driveexp")   { setInternalDriveExponent(value);         return true; }
+    if (key == "nfbgain")    { setInternalNfbGain(value);               return true; }
+    if (key == "drivescale") { diag.driveScaleMul = value;              return true; }
+    if (key == "xfmrasym")   { diag.xfmrAsym = value;                   return true; }
+    return false;
+}
+#endif
+
 void AmpSimGold::updateCabGainTarget()
 {
     float trimGain = juce::Decibels::decibelsToGain(cabTrimDb);
@@ -546,14 +601,28 @@ void AmpSimGold::configurePreampEngines()
 {
     const float g = gainParam;
 
+#if ORB_OFFLINE_TOOLS
+    if (diag.preampPolySigmoid)
+    {
+        preampL.setCoefficients(WaveshaperEngine::CoefficientPreset::SignFoldSigmoid);
+        preampR.setCoefficients(WaveshaperEngine::CoefficientPreset::SignFoldSigmoid);
+    }
+#endif
+
     float driveScale = 0.15f + 1.65f * std::pow(g, internalDriveExponent);
     if (preampBoostParam.load(std::memory_order_acquire))
         driveScale *= 1.5f;  // +3.5 dB boost
+#if ORB_OFFLINE_TOOLS
+    driveScale *= diag.driveScaleMul;
+#endif
 
     preampL.setInputGain(driveScale);
     preampR.setInputGain(driveScale);
 
     float preShape = g * 0.4f;
+#if ORB_OFFLINE_TOOLS
+    preShape *= diag.preShapeScale;
+#endif
     preampL.setPreShapeIntensity(preShape);
     preampR.setPreShapeIntensity(preShape);
 
@@ -565,15 +634,24 @@ void AmpSimGold::configurePreampEngines()
         float t = (g - 0.6f) / 0.4f;
         feedback = 0.012f + 0.008f * t * t;
     }
+#if ORB_OFFLINE_TOOLS
+    if (diag.fbOverride >= 0.0f)
+        feedback = diag.fbOverride;
+#endif
     preampL.setFeedbackAmount(feedback);
     preampR.setFeedbackAmount(feedback);
 
+#if ORB_OFFLINE_TOOLS
+    const bool midLpfOn = diag.enginePostFilter;
+#else
+    const bool midLpfOn = true;
+#endif
     preampL.setPostFilterLowEnabled(false);
-    preampL.setPostFilterMidEnabled(true);
+    preampL.setPostFilterMidEnabled(midLpfOn);
     preampL.setPostFilterMid(12000.0f, 0.38f);
     preampL.setPostFilterHighEnabled(false);
     preampR.setPostFilterLowEnabled(false);
-    preampR.setPostFilterMidEnabled(true);
+    preampR.setPostFilterMidEnabled(midLpfOn);
     preampR.setPostFilterMid(12000.0f, 0.38f);
     preampR.setPostFilterHighEnabled(false);
 
@@ -586,18 +664,28 @@ void AmpSimGold::configureCharacterEngines()
     characterL.setInputGain(internalCharacterGain);
     characterR.setInputGain(internalCharacterGain);
 
-    characterL.setPreShapeIntensity(0.2f);
-    characterR.setPreShapeIntensity(0.2f);
+    float charPreShape = 0.2f;
+    float charFeedback = 0.02f;
+#if ORB_OFFLINE_TOOLS
+    charPreShape *= diag.preShapeScale;
+    if (diag.fbOverride >= 0.0f)
+        charFeedback = diag.fbOverride;
+    const bool midLpfOn = diag.enginePostFilter;
+#else
+    const bool midLpfOn = true;
+#endif
+    characterL.setPreShapeIntensity(charPreShape);
+    characterR.setPreShapeIntensity(charPreShape);
 
-    characterL.setFeedbackAmount(0.02f);
-    characterR.setFeedbackAmount(0.02f);
+    characterL.setFeedbackAmount(charFeedback);
+    characterR.setFeedbackAmount(charFeedback);
 
     characterL.setPostFilterLowEnabled(false);
-    characterL.setPostFilterMidEnabled(true);
+    characterL.setPostFilterMidEnabled(midLpfOn);
     characterL.setPostFilterMid(12000.0f, 0.4f);
     characterL.setPostFilterHighEnabled(false);
     characterR.setPostFilterLowEnabled(false);
-    characterR.setPostFilterMidEnabled(true);
+    characterR.setPostFilterMidEnabled(midLpfOn);
     characterR.setPostFilterMid(12000.0f, 0.4f);
     characterR.setPostFilterHighEnabled(false);
 
@@ -616,6 +704,9 @@ void AmpSimGold::configurePowerAmpEngines()
     powerAmpNegR.setInputGain(driveScale);
 
     float powerPreShape = sd * 0.3f;
+#if ORB_OFFLINE_TOOLS
+    powerPreShape *= diag.preShapeScale;
+#endif
     powerAmpPosL.setPreShapeIntensity(powerPreShape);
     powerAmpPosR.setPreShapeIntensity(powerPreShape);
     powerAmpNegL.setPreShapeIntensity(powerPreShape);
@@ -663,6 +754,19 @@ void AmpSimGold::updateToneShapingFilters(float gain01)
         oversampledRate, 1220.0f, 0.8f, juce::Decibels::decibelsToGain(midScoopDb));
     *toneMidScoopL.coefficients = *midCoeffs;
     *toneMidScoopR.coefficients = *midCoeffs;
+
+#if ORB_OFFLINE_TOOLS
+    if (!diag.toneLpfOn)
+    {
+        *toneLpfL.coefficients = juce::dsp::IIR::Coefficients<float>(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+        *toneLpfR.coefficients = *toneLpfL.coefficients;
+    }
+    if (!diag.midScoopOn)
+    {
+        *toneMidScoopL.coefficients = juce::dsp::IIR::Coefficients<float>(1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+        *toneMidScoopR.coefficients = *toneMidScoopL.coefficients;
+    }
+#endif
 }
 
 void AmpSimGold::updateToneStackCoeffs()

@@ -62,6 +62,11 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "  --x-nfb-gain <float>       Push-pull NFB gain (default: 0.05)\n"
                   << "\nMode 2 - full chain via preset JSON (cannot combine with mode 1 flags):\n"
                   << "  --chain-config <preset.json>\n"
+                  << "  --gold-diag k=v[,k=v...]   Gold diagnostic overrides, applied after the\n"
+                  << "                             preset. Keys: fb moddepth preshape enginelpf\n"
+                  << "                             tonelpf midscoop xfmrlpf xfmrsat sag charbypass\n"
+                  << "                             preamppoly chargain driveexp nfbgain drivescale\n"
+                  << "                             xfmrasym\n"
                   << std::flush;
         return true;
     }
@@ -144,6 +149,40 @@ bool runOfflineProcessor(const juce::StringArray& args)
 
         auto processor = std::make_unique<OpenRiffBoxProcessor>();
         PresetState::apply(preset, *processor);
+
+        // Gold diagnostic overrides: after the preset, before prepare, so
+        // prepare-time hooks (mod depth, transformer LPF) take effect.
+        int diagIdx = args.indexOf("--gold-diag");
+        if (diagIdx >= 0)
+        {
+            if (diagIdx + 1 >= args.size())
+            {
+                std::cerr << "ERROR: --gold-diag requires key=value[,key=value...]" << std::endl;
+                return true;
+            }
+            auto* gold = dynamic_cast<AmpSimGold*>(
+                processor->getEffectChain().getEffectByName("Amp Gold"));
+            if (gold == nullptr)
+            {
+                std::cerr << "ERROR: Amp Gold not found in chain" << std::endl;
+                return true;
+            }
+            auto tokens = juce::StringArray::fromTokens(args[diagIdx + 1], ",;", "");
+            for (const auto& tok : tokens)
+            {
+                auto key = tok.upToFirstOccurrenceOf("=", false, false).trim().toLowerCase();
+                auto val = tok.fromFirstOccurrenceOf("=", false, false).trim();
+                if (key.isEmpty() || val.isEmpty()
+                    || !gold->setDiagnostic(key, val.getFloatValue()))
+                {
+                    std::cerr << "ERROR: bad --gold-diag token: " << tok << std::endl;
+                    return true;
+                }
+                std::cout << "GOLD-DIAG: " << key << " = " << val.getFloatValue() << "\n";
+            }
+            std::cout << std::flush;
+        }
+
         processor->setAudioActive(true);
 
         const int blockSize = 512;
