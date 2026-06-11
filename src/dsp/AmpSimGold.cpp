@@ -579,6 +579,10 @@ bool AmpSimGold::setDiagnostic(const juce::String& key, float value)
     if (key == "nfbgain")    { setInternalNfbGain(value);               return true; }
     if (key == "drivescale") { diag.driveScaleMul = value;              return true; }
     if (key == "xfmrasym")   { diag.xfmrAsym = value;                   return true; }
+    if (key == "tripre")     { diag.triodePreBias = value;              return true; }
+    if (key == "trichar")    { diag.triodeCharBias = value;             return true; }
+    if (key == "triknee")    { diag.triodeKnee = juce::jmax(0.1f, value); return true; }
+    if (key == "polycurve")  { diag.polyCurve = value >= 0.5f;          return true; }
     return false;
 }
 #endif
@@ -590,7 +594,12 @@ void AmpSimGold::updateCabGainTarget()
     if (cabinetTypeParam.load(std::memory_order_acquire) == kNoCabinet)
         trimGain *= juce::Decibels::decibelsToGain(-8.0f);
 
-    cabMakeupGain.setTargetValue(trimGain);
+    float makeupDb = kVoiceMakeupDb;
+#if ORB_OFFLINE_TOOLS
+    if (diag.polyCurve)
+        makeupDb = 0.0f;
+#endif
+    cabMakeupGain.setTargetValue(trimGain * juce::Decibels::decibelsToGain(makeupDb));
 }
 
 //==============================================================================
@@ -608,6 +617,27 @@ void AmpSimGold::configurePreampEngines()
         preampR.setCoefficients(WaveshaperEngine::CoefficientPreset::SignFoldSigmoid);
     }
 #endif
+
+    float preBias  = kTriodeBias;
+    float preKnee  = 1.0f;
+    bool  usePoly  = false;
+#if ORB_OFFLINE_TOOLS
+    if (diag.triodePreBias >= 0.0f)
+        preBias = diag.triodePreBias;
+    preKnee = diag.triodeKnee;
+    usePoly = diag.polyCurve;
+#endif
+    if (usePoly)
+    {
+        preampL.clearTriodeShaper();
+        preampR.clearTriodeShaper();
+    }
+    else
+    {
+        // 9x matches the gain baked into the sign-fold preamp polynomial
+        preampL.setTriodeShaper(9.0f, 9.0f * preKnee, preBias);
+        preampR.setTriodeShaper(9.0f, 9.0f * preKnee, preBias);
+    }
 
     float driveScale = 0.15f + 1.65f * std::pow(g, internalDriveExponent);
     if (preampBoostParam.load(std::memory_order_acquire))
@@ -663,6 +693,27 @@ void AmpSimGold::configureCharacterEngines()
 {
     characterL.setInputGain(internalCharacterGain);
     characterR.setInputGain(internalCharacterGain);
+
+    float charBias = kTriodeBias;
+    float charKnee = 1.0f;
+    bool  charPoly = false;
+#if ORB_OFFLINE_TOOLS
+    if (diag.triodeCharBias >= 0.0f)
+        charBias = diag.triodeCharBias;
+    charKnee = diag.triodeKnee;
+    charPoly = diag.polyCurve;
+#endif
+    if (charPoly)
+    {
+        characterL.clearTriodeShaper();
+        characterR.clearTriodeShaper();
+    }
+    else
+    {
+        // 5x matches the gain baked into the character polynomial
+        characterL.setTriodeShaper(5.0f, 5.0f * charKnee, charBias);
+        characterR.setTriodeShaper(5.0f, 5.0f * charKnee, charBias);
+    }
 
     float charPreShape = 0.2f;
     float charFeedback = 0.02f;

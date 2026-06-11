@@ -32,7 +32,7 @@ public:
     void setPresence(float value);       // 0-1 (sweeps NFB LPF: 0=tight/dark, 1=open/present)
     void setCabTrim(float dB);           // -12 to +12
 
-    void setInternalCharacterGain(float g);   // character stage inputGain (default 0.93)
+    void setInternalCharacterGain(float g);   // character stage inputGain (default 0.3)
     void setInternalDriveExponent(float e);   // preamp drive curve exponent (default 0.75)
     void setInternalNfbGain(float g);         // push-pull NFB gain (default 0.12)
 
@@ -41,7 +41,9 @@ public:
     // Call before prepare(). Returns false on unknown key.
     // Keys: fb, moddepth, preshape, enginelpf, tonelpf, midscoop, xfmrlpf,
     //       xfmrsat, sag, charbypass, preamppoly, chargain, driveexp, nfbgain,
-    //       drivescale, xfmrasym
+    //       drivescale, xfmrasym, tripre, trichar, triknee, polycurve
+    // Old (pre-triode) voice = polycurve=1,chargain=0.93 (polycurve also
+    // disables the voice makeup gain).
     bool setDiagnostic(const juce::String& key, float value);
 #endif
 
@@ -188,9 +190,21 @@ private:
 
     float cabTrimDb    = 0.0f; 
 
-    float internalCharacterGain = 0.93f;
+    float internalCharacterGain = 0.3f;
     float internalDriveExponent = 0.75f;
     float internalNfbGain       = 0.12f;
+
+    // Triode voice (2026-06 sound campaign): preamp + character stages use a
+    // biased-tanh triode curve instead of the odd-symmetric sign-fold
+    // polynomials. The bias makes each stage clip asymmetrically (even
+    // harmonics at the source, H2 ~ -17 dB at the output); the old sign-fold
+    // could only produce evens via the output transformer (H2 ~ -45 dB, ear-
+    // confirmed sterile). Character gain 0.93 -> 0.3 removes the static
+    // compression wall the hot stage created. Makeup restores the old loudness
+    // on dense material (matched on barre chords at default gain; sparser
+    // material sits lower because its old level was wall compression).
+    static constexpr float kTriodeBias    = 0.45f;
+    static constexpr float kVoiceMakeupDb = 3.7f;
 
 #if ORB_OFFLINE_TOOLS
     // Diagnostic toggles; defaults reproduce stock behavior exactly.
@@ -209,6 +223,10 @@ private:
         bool  preampPolySigmoid = false;  // preamp poly: SignFoldSigmoid instead of Chebyshev
         float driveScaleMul     = 1.0f;   // multiplier on the preamp drive law
         float xfmrAsym          = 1.2f;   // transformer pos/neg saturation ratio
+        float triodePreBias     = -1.0f;  // >=0: overrides stock preamp triode bias (kTriodeBias)
+        float triodeCharBias    = -1.0f;  // >=0: overrides stock character triode bias
+        float triodeKnee        = 1.0f;   // knee drive multiplier for triode stages
+        bool  polyCurve         = false;  // revert to sign-fold polynomials + no voice makeup
     };
     Diag diag;
 #endif

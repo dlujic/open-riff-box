@@ -66,7 +66,8 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             preset. Keys: fb moddepth preshape enginelpf\n"
                   << "                             tonelpf midscoop xfmrlpf xfmrsat sag charbypass\n"
                   << "                             preamppoly chargain driveexp nfbgain drivescale\n"
-                  << "                             xfmrasym\n"
+                  << "                             xfmrasym tripre trichar triknee polycurve\n"
+                  << "                             (old pre-triode voice: polycurve=1,chargain=0.93)\n"
                   << std::flush;
         return true;
     }
