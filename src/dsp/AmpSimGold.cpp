@@ -510,7 +510,7 @@ void AmpSimGold::resetToDefaults()
     setTreble(0.5f);
     setPreampBoost(false);
     setSpeakerDrive(0.2f);
-    setCabinetType(0);
+    setCabinetType(10);   // Plexi Roar
     setBrightness(0.6f);
     setMicPosition(0.5f);
     setPresence(0.70f);

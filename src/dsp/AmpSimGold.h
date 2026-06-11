@@ -184,7 +184,7 @@ private:
     float micPositionParam   = 0.5f;
     float presenceParam      = 0.70f;
     std::atomic<bool> preampBoostParam { false };
-    std::atomic<int>  cabinetTypeParam { 0 };
+    std::atomic<int>  cabinetTypeParam { 10 };   // Plexi Roar
 
     float cabTrimDb    = 0.0f; 
 

@@ -524,7 +524,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             amp2->setPreampBoost(amp2Xml->getBoolAttribute("preampBoost", false));
             amp2->setSpeakerDrive(static_cast<float>(amp2Xml->getDoubleAttribute("speakerDrive", 0.2)));
             amp2->setPresence(static_cast<float>(amp2Xml->getDoubleAttribute("presence", 0.70)));
-            amp2->setCabinetType(amp2Xml->getIntAttribute("cabinetType", 0));
+            amp2->setCabinetType(amp2Xml->getIntAttribute("cabinetType", 10));
             amp2->setBrightness(static_cast<float>(amp2Xml->getDoubleAttribute("brightness", 0.6)));
             amp2->setMicPosition(static_cast<float>(amp2Xml->getDoubleAttribute("micPosition", 0.5)));
             amp2->setCabTrim(static_cast<float>(amp2Xml->getDoubleAttribute("cabTrim", 0.0)));

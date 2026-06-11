@@ -424,7 +424,7 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 amp2->setPreampBoost(getBool(v, "preampBoost", false));
                 amp2->setSpeakerDrive(getDouble(v, "speakerDrive", 0.2));
                 amp2->setPresence(getDouble(v, "presence", 0.70));
-                amp2->setCabinetType(getInt(v, "cabinetType", 0));
+                amp2->setCabinetType(getInt(v, "cabinetType", 10));
                 amp2->setBrightness(getDouble(v, "brightness", 0.6));
                 amp2->setMicPosition(getDouble(v, "micPosition", 0.5));
                 amp2->setCabTrim(static_cast<float>(getDouble(v, "cabTrim", 0.0)));
