@@ -880,7 +880,7 @@ void AmpSimPlatinum::resetToDefaults()
     setGainMode(0);
     setCabinetType(0);
     setMicPosition(0.5f);
-    setCabTrim(-6.5f);
+    setCabTrim(0.0f);
 }
 
 //==============================================================================
@@ -969,7 +969,7 @@ void AmpSimPlatinum::updateCabGainTarget()
     if (cabinetTypeParam.load(std::memory_order_acquire) == kNoCabinet)
         trimGain *= juce::Decibels::decibelsToGain(-8.0f);
 
-    cabMakeupGain.setTargetValue(trimGain);
+    cabMakeupGain.setTargetValue(trimGain * juce::Decibels::decibelsToGain(kLevelMakeupDb));
 }
 
 //==============================================================================

@@ -80,6 +80,8 @@ private:
     std::atomic<bool> preampBoostParam { false };
     std::atomic<int>  cabinetTypeParam { 0 };
 
+    static constexpr float kLevelMakeupDb = 11.1f;
+
     float cabTrimDb    = 0.0f;
     juce::SmoothedValue<float> cabMakeupGain { 1.0f };
 

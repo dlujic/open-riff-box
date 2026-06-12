@@ -337,7 +337,7 @@ void AmpSimSilver::updateCabGainTarget()
     if (cabinetTypeParam.load(std::memory_order_acquire) == kNoCabinet)
         trimGain *= juce::Decibels::decibelsToGain(-8.0f);
 
-    cabMakeupGain.setTargetValue(trimGain);
+    cabMakeupGain.setTargetValue(trimGain * juce::Decibels::decibelsToGain(kLevelMakeupDb));
 }
 
 void AmpSimSilver::updateEQFilters()
