@@ -16,6 +16,9 @@
 class LookaheadLimiter
 {
 public:
+    LookaheadLimiter()  = default;
+    ~LookaheadLimiter() = default;
+
     void prepare(double sampleRate, int samplesPerBlock, int numChannels);
     void reset();
 
