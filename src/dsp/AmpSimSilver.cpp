@@ -56,15 +56,43 @@ void AmpSimSilver::getIRData(int index, const void*& data, int& dataSize)
 AmpSimSilver::AmpSimSilver()
 {
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
-        2, 2, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true);
+        2, kOsStages, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true);
 }
 
 void AmpSimSilver::prepare(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
 
+    size_t osStages = kOsStages;
+    auto   osFilter = juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR;
+#if ORB_OFFLINE_TOOLS
+    osStages = static_cast<size_t>(diag.osStages);
+    if (diag.osFir)
+        osFilter = juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple;
+#endif
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        2, osStages, osFilter, true);
+
     oversampling->initProcessing(static_cast<size_t>(samplesPerBlock));
     oversampling->reset();
+
+    const auto osFactor = oversampling->getOversamplingFactor();
+    const double osRate = sampleRate * static_cast<double>(osFactor);
+
+    juce::dsp::ProcessSpec osSpec;
+    osSpec.sampleRate       = osRate;
+    osSpec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock)
+                              * static_cast<juce::uint32>(osFactor);
+    osSpec.numChannels      = 2;
+
+    *osDcBlocker.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(osRate, 7.0f);
+    osDcBlocker.prepare(osSpec);
+
+    coneSmoothRate = osRate;
+#if ORB_OFFLINE_TOOLS
+    if (diag.coneAtBase)
+        coneSmoothRate = sampleRate;
+#endif
 
     juce::dsp::ProcessSpec spec;
     spec.sampleRate       = sampleRate;
@@ -111,7 +139,7 @@ void AmpSimSilver::prepare(double sampleRate, int samplesPerBlock)
     updateMicPositionFilter();
 
     gainSmoothed.reset(sampleRate, 0.02);
-    speakerDriveSmoothed.reset(sampleRate, 0.02);
+    speakerDriveSmoothed.reset(coneSmoothRate, 0.02);
 
     float initGain = 1.0f + 49.0f * gainParam * gainParam;
     gainSmoothed.setCurrentAndTargetValue(initGain);
@@ -126,13 +154,14 @@ void AmpSimSilver::reset()
     trebleFilter.reset();
     preampLPF.reset();
     dcBlocker.reset();
+    osDcBlocker.reset();
     presenceFilter.reset();
     cabinetConvolution.reset();
     cabMakeupGain.reset(currentSampleRate, 0.2);
     brightnessFilter.reset();
     micPositionFilter.reset();
     gainSmoothed.reset(currentSampleRate, 0.02);
-    speakerDriveSmoothed.reset(currentSampleRate, 0.02);
+    speakerDriveSmoothed.reset(coneSmoothRate, 0.02);
 
     lastCabinetType = -1;
 }
@@ -214,6 +243,42 @@ void AmpSimSilver::process(juce::AudioBuffer<float>& buffer)
             }
         }
 
+        //----------------------------------------------------------------------
+        // 4. Speaker distortion - runs oversampled: at base rate its tanh
+        // folded audible inharmonics under high notes (C1 alias bench).
+        // DC-block first; the asymmetric shaper leaves an offset the cone
+        // would otherwise rectify.
+        //----------------------------------------------------------------------
+        bool coneHere = true;
+        bool coneOn   = true;
+#if ORB_OFFLINE_TOOLS
+        coneHere = !diag.coneAtBase;
+        coneOn   = !diag.coneBypass;
+#endif
+        if (coneHere)
+        {
+            juce::dsp::ProcessContextReplacing<float> osContext(oversampledBlock);
+            osDcBlocker.process(osContext);
+
+            if (coneOn)
+            {
+                float* chans[2] = {};
+                const int nch = juce::jmin(osNumChannels, 2);
+                for (int ch = 0; ch < nch; ++ch)
+                    chans[ch] = oversampledBlock.getChannelPointer(static_cast<size_t>(ch));
+
+                for (int i = 0; i < osNumSamples; ++i)
+                {
+                    const float amt = speakerDriveSmoothed.getNextValue() * 0.4f;
+                    for (int ch = 0; ch < nch; ++ch)
+                    {
+                        const float x = chans[ch][i];
+                        chans[ch][i] = x + amt * (std::tanh(2.0f * x) - x);
+                    }
+                }
+            }
+        }
+
         oversampling->processSamplesDown(block);
     }
 
@@ -223,20 +288,21 @@ void AmpSimSilver::process(juce::AudioBuffer<float>& buffer)
         dcBlocker.process(context);
     }
 
-    //--------------------------------------------------------------------------
-    // 4. Speaker distortion
-    //--------------------------------------------------------------------------
-    for (int i = 0; i < numSamples; ++i)
+#if ORB_OFFLINE_TOOLS
+    // Legacy cone position (pre-fix behavior) for diagnostic A/B renders.
+    if (diag.coneAtBase && !diag.coneBypass)
     {
-        const float drive = speakerDriveSmoothed.getNextValue();
-        const float amt = drive * 0.4f;
-
-        for (int ch = 0; ch < numChannels; ++ch)
+        for (int i = 0; i < numSamples; ++i)
         {
-            float x = buffer.getWritePointer(ch)[i];
-            buffer.getWritePointer(ch)[i] = x + amt * (std::tanh(2.0f * x) - x);
+            const float amt = speakerDriveSmoothed.getNextValue() * 0.4f;
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                float x = buffer.getWritePointer(ch)[i];
+                buffer.getWritePointer(ch)[i] = x + amt * (std::tanh(2.0f * x) - x);
+            }
         }
     }
+#endif
 
     //--------------------------------------------------------------------------
     // 4b. Presence peak
@@ -329,6 +395,27 @@ void AmpSimSilver::setCabTrim(float dB)
     cabTrimDb = juce::jlimit(-12.0f, 12.0f, dB);
     updateCabGainTarget();
 }
+
+#if ORB_OFFLINE_TOOLS
+bool AmpSimSilver::setDiagnostic(const juce::String& key, float value)
+{
+    if (key == "osfactor")
+    {
+        const int f = static_cast<int>(value);
+        if (f != 2 && f != 4 && f != 8 && f != 16 && f != 32)
+            return false;
+        int stages = 0;
+        for (int v = f; v > 1; v >>= 1)
+            ++stages;
+        diag.osStages = stages;
+        return true;
+    }
+    if (key == "osfir")      { diag.osFir = value >= 0.5f;      return true; }
+    if (key == "cone1x")     { diag.coneAtBase = value >= 0.5f; return true; }
+    if (key == "conebypass") { diag.coneBypass = value >= 0.5f; return true; }
+    return false;
+}
+#endif
 
 void AmpSimSilver::updateCabGainTarget()
 {
