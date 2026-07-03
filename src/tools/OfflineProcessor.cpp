@@ -6,6 +6,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "../dsp/AmpSimGold.h"
 #include "../dsp/AmpSimPlatinum.h"
+#include "../dsp/AmpSimSilver.h"
 #include "../PluginProcessor.h"
 #include "../preset/Preset.h"
 #include "../preset/PresetState.h"
@@ -68,6 +69,12 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             preamppoly chargain driveexp nfbgain drivescale\n"
                   << "                             xfmrasym tripre trichar triknee polycurve\n"
                   << "                             (old pre-triode voice: polycurve=1,chargain=0.93)\n"
+                  << "  --silver-diag k=v[,k=v...] Silver diagnostic overrides. Keys: osfactor\n"
+                  << "                             (2/4/8/16/32, stock 16), osfir (1 = FIR\n"
+                  << "                             equiripple resampler), cone1x (1 = legacy\n"
+                  << "                             base-rate cone), conebypass\n"
+                  << "                             (pre-C1-fix behavior: osfactor=4,cone1x=1)\n"
+                  << "  --no-soft-limit            Bypass the chain output soft limiter\n"
                   << std::flush;
         return true;
     }
@@ -182,6 +189,43 @@ bool runOfflineProcessor(const juce::StringArray& args)
                 std::cout << "GOLD-DIAG: " << key << " = " << val.getFloatValue() << "\n";
             }
             std::cout << std::flush;
+        }
+
+        int silverDiagIdx = args.indexOf("--silver-diag");
+        if (silverDiagIdx >= 0)
+        {
+            if (silverDiagIdx + 1 >= args.size())
+            {
+                std::cerr << "ERROR: --silver-diag requires key=value[,key=value...]" << std::endl;
+                return true;
+            }
+            auto* silver = dynamic_cast<AmpSimSilver*>(
+                processor->getEffectChain().getEffectByName("Amp Silver"));
+            if (silver == nullptr)
+            {
+                std::cerr << "ERROR: Amp Silver not found in chain" << std::endl;
+                return true;
+            }
+            auto tokens = juce::StringArray::fromTokens(args[silverDiagIdx + 1], ",;", "");
+            for (const auto& tok : tokens)
+            {
+                auto key = tok.upToFirstOccurrenceOf("=", false, false).trim().toLowerCase();
+                auto val = tok.fromFirstOccurrenceOf("=", false, false).trim();
+                if (key.isEmpty() || val.isEmpty()
+                    || !silver->setDiagnostic(key, val.getFloatValue()))
+                {
+                    std::cerr << "ERROR: bad --silver-diag token: " << tok << std::endl;
+                    return true;
+                }
+                std::cout << "SILVER-DIAG: " << key << " = " << val.getFloatValue() << "\n";
+            }
+            std::cout << std::flush;
+        }
+
+        if (args.contains("--no-soft-limit"))
+        {
+            processor->getEffectChain().setSoftLimitBypass(true);
+            std::cout << "SOFT-LIMIT: bypassed\n" << std::flush;
         }
 
         processor->setAudioActive(true);

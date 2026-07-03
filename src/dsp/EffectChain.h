@@ -44,6 +44,11 @@ public:
 
     bool isDefaultOrder() const;
 
+#if ORB_OFFLINE_TOOLS
+    // Offline-only: bypass the output soft limiter for artifact-isolation renders.
+    void setSoftLimitBypass(bool shouldBypass) { softLimitBypassed = shouldBypass; }
+#endif
+
 private:
     std::vector<std::unique_ptr<EffectProcessor>> effects;
 
@@ -67,6 +72,10 @@ private:
     // Output soft limiter
     //===========================================================================
     static float softLimit(float x);
+
+#if ORB_OFFLINE_TOOLS
+    bool softLimitBypassed = false;
+#endif
 
     // Protects the effects vector from concurrent audio/message thread access.
     juce::SpinLock chainLock;

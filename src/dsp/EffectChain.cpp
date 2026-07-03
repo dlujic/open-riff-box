@@ -61,6 +61,11 @@ void EffectChain::process(juce::AudioBuffer<float>& buffer)
             wasBypassed[i] = bypassed;
     }
 
+#if ORB_OFFLINE_TOOLS
+    if (softLimitBypassed)
+        return;
+#endif
+
     for (int ch = 0; ch < numChannels; ++ch)
     {
         auto* samples = buffer.getWritePointer(ch);
