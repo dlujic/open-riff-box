@@ -48,7 +48,10 @@ void OpenRiffBoxProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     currentBlockSize  = samplesPerBlock;
 
     effectChain.prepare(sampleRate, samplesPerBlock);
-    setLatencySamples(effectChain.getTotalLatencySamples());
+    outputLimiter.prepare(sampleRate, samplesPerBlock,
+                          juce::jmax(2, getTotalNumOutputChannels()));
+    setLatencySamples(effectChain.getTotalLatencySamples()
+                      + outputLimiter.getLatencySamples());
 
     tunerEngine.prepare(sampleRate);
     metronomeEngine.prepare(sampleRate);
@@ -57,6 +60,7 @@ void OpenRiffBoxProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 void OpenRiffBoxProcessor::releaseResources()
 {
     effectChain.reset();
+    outputLimiter.reset();
     tunerEngine.reset();
     metronomeEngine.reset();
 }
@@ -112,8 +116,10 @@ void OpenRiffBoxProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     // Update reported latency when bypass states change (e.g. amp sim engine swap).
     // Only active (non-bypassed) effects contribute latency to the signal path.
+    // The limiter's lookahead delay is always in the path, toggled or not.
     {
-        int latency = effectChain.getTotalLatencySamples();
+        int latency = effectChain.getTotalLatencySamples()
+                      + outputLimiter.getLatencySamples();
         if (latency != lastReportedLatency)
         {
             setLatencySamples(latency);
@@ -133,25 +139,11 @@ void OpenRiffBoxProcessor::processBlock(juce::AudioBuffer<float>& buffer,
             buffer.applyGain(vol);
     }
 
-    // Output limiter — brickwall at -0.1 dBFS (protects headphones/speakers)
-    bool clipped = false;
-    if (limiterEnabled.load(std::memory_order_acquire))
-    {
-        constexpr float threshold = 0.9886f; // -0.1 dBFS
-        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-        {
-            auto* samples = buffer.getWritePointer(ch);
-            for (int i = 0; i < buffer.getNumSamples(); ++i)
-            {
-                if (samples[i] > threshold || samples[i] < -threshold)
-                {
-                    samples[i] = juce::jlimit(-threshold, threshold, samples[i]);
-                    clipped = true;
-                }
-            }
-        }
-    }
-    limiterClipping.store(clipped, std::memory_order_relaxed);
+    // Output limiter - lookahead peak limiter, ceiling -0.1 dBFS (protects
+    // headphones/speakers). Off = genuinely raw output.
+    outputLimiter.process(buffer, limiterEnabled.load(std::memory_order_acquire));
+    limiterClipping.store(outputLimiter.getGainReductionDb() > 0.1f,
+                          std::memory_order_relaxed);
 
     // Measure output peak (after effects + limiter)
     {

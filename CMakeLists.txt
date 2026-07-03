@@ -38,6 +38,7 @@ target_sources(OpenRiffBox
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/dsp/EffectChain.cpp
+        src/dsp/LookaheadLimiter.cpp
         src/dsp/Compressor.cpp
         src/dsp/NoiseGate.cpp
         src/dsp/Distortion.cpp

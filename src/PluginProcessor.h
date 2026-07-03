@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <atomic>
 #include "dsp/EffectChain.h"
+#include "dsp/LookaheadLimiter.h"
 #include "dsp/TunerEngine.h"
 #include "dsp/MetronomeEngine.h"
 
@@ -124,9 +125,11 @@ private:
     int    currentBlockSize   = 512;
 
     std::atomic<bool>  audioActive   { false };
-    std::atomic<float> masterVolume  { 1.0f };   // 0-1, default 100% (soft limiter at 0.97 protects output)
+    std::atomic<float> masterVolume  { 1.0f };   // 0-1, default 100% (lookahead limiter protects output)
 
-    // Output limiter (brickwall at -0.1 dBFS)
+    // Output limiter (lookahead, ceiling -0.1 dBFS); limiterClipping = gain
+    // reduction currently engaged (drives the sidebar light)
+    LookaheadLimiter outputLimiter;
     std::atomic<bool> limiterEnabled  { true };
     std::atomic<bool> limiterClipping { false };
 

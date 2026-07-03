@@ -61,17 +61,6 @@ void EffectChain::process(juce::AudioBuffer<float>& buffer)
             wasBypassed[i] = bypassed;
     }
 
-#if ORB_OFFLINE_TOOLS
-    if (softLimitBypassed)
-        return;
-#endif
-
-    for (int ch = 0; ch < numChannels; ++ch)
-    {
-        auto* samples = buffer.getWritePointer(ch);
-        for (int i = 0; i < numSamples; ++i)
-            samples[i] = softLimit(samples[i]);
-    }
 }
 
 void EffectChain::reset()
@@ -247,15 +236,3 @@ int EffectChain::getTotalLatencySamples() const
     return total;
 }
 
-//==============================================================================
-float EffectChain::softLimit(float x)
-{
-    constexpr float threshold = 0.97f;
-    constexpr float headroom  = 1.0f - threshold;  // 0.03
-
-    if (x > threshold)
-        return threshold + headroom * std::tanh((x - threshold) / headroom);
-    if (x < -threshold)
-        return -threshold - headroom * std::tanh((-x - threshold) / headroom);
-    return x;
-}

@@ -74,7 +74,6 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             equiripple resampler), cone1x (1 = legacy\n"
                   << "                             base-rate cone), conebypass\n"
                   << "                             (pre-C1-fix behavior: osfactor=4,cone1x=1)\n"
-                  << "  --no-soft-limit            Bypass the chain output soft limiter\n"
                   << std::flush;
         return true;
     }
@@ -222,12 +221,6 @@ bool runOfflineProcessor(const juce::StringArray& args)
             std::cout << std::flush;
         }
 
-        if (args.contains("--no-soft-limit"))
-        {
-            processor->getEffectChain().setSoftLimitBypass(true);
-            std::cout << "SOFT-LIMIT: bypassed\n" << std::flush;
-        }
-
         processor->setAudioActive(true);
 
         const int blockSize = 512;
@@ -330,7 +323,9 @@ bool runOfflineProcessor(const juce::StringArray& args)
             return true;
         }
 
-        int outBits = outputFile.getFileExtension().equalsIgnoreCase(".flac") ? 24 : bitsPerSample;
+        // WAV goes out as 32-bit float: with limiterEnabled false the chain is
+        // now genuinely unlimited and hot renders would clip an integer writer.
+        int outBits = outputFile.getFileExtension().equalsIgnoreCase(".flac") ? 24 : 32;
         std::unique_ptr<juce::AudioFormatWriter> writer(
             fmt->createWriterFor(outStream.release(), fileSampleRate,
                                  static_cast<unsigned int>(outChannels), outBits, {}, 0));

@@ -26,9 +26,21 @@
 //   Loads a preset JSON and runs the complete OpenRiffBoxProcessor chain.
 //   Legacy amp flags must not be combined with --chain-config.
 //   Prints applied config between ===CHAIN-CONFIG-BEGIN=== and ===CHAIN-CONFIG-END=== markers.
+//   The preset's limiterEnabled drives the output lookahead limiter; false
+//   renders the raw chain (no other limiting exists since the softLimit
+//   removal, C1 2026-07-03).
+//
+//   --gold-diag k=v[,k=v...]    Gold diagnostic overrides (see --help output
+//                               for keys), applied after the preset.
+//   --silver-diag k=v[,k=v...]  Silver diagnostic overrides: osfactor
+//                               (2/4/8/16/32, stock 16), osfir (1 = FIR
+//                               equiripple resampler), cone1x (1 = legacy
+//                               base-rate cone), conebypass.
+//                               Pre-C1-fix engine: osfactor=4,cone1x=1.
 //
 // Supports FLAC and WAV input/output (detected by file extension).
-// Output format: 24-bit FLAC or input-matching WAV.
+// Output format: 24-bit FLAC or 32-bit float WAV (raw renders can exceed
+// full scale; an integer writer would clip them).
 
 #if ORB_OFFLINE_TOOLS
 
