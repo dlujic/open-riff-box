@@ -47,6 +47,16 @@ public:
 
     void setStageLimit(int limit) { stageLimit = limit; }
 
+#if ORB_OFFLINE_TOOLS
+    // Offline-only diagnostic overrides for artifact-isolation renders.
+    // Call before prepare(). Returns false on unknown key.
+    // Keys: osfactor (2/4/8/16/32, stock 4), osfir (1 = FIR equiripple resampler),
+    //       noiselevel (V1A noise inject amplitude, 1e-5 = pre-C2 stock),
+    //       brightfix (1 = schematic-derived GAIN1 network, default 0),
+    //       brightcin (V1B Miller capacitance in pF for brightfix, default 110)
+    bool setDiagnostic(const juce::String& key, float value);
+#endif
+
     static constexpr int kNumCabinets   = 14;
     static constexpr int kNoCabinet     = kNumCabinets;        // index 14
     static constexpr int kCustomCabinet = kNumCabinets + 1;    // index 15
@@ -185,6 +195,25 @@ private:
     std::atomic<int>  cabinetTypeParam { 0 };
 
     static constexpr float kLevelMakeupDb = 3.0f;
+    static constexpr size_t kOsStages = 2;  // 4x oversampling
+
+#if ORB_OFFLINE_TOOLS
+    // Diagnostic toggles; defaults reproduce stock behavior exactly.
+    struct Diag
+    {
+        int   osStages    = static_cast<int>(kOsStages);
+        bool  osFir       = false;
+        bool  brightFix   = false;
+        float brightCinPf = 110.0f;
+    };
+    Diag diag;
+
+    // Schematic-derived GAIN1 network (brightfix arm), same 3rd-order form
+    // as the tone stack. Coefficients set in updateBrightNetworkCoeffs().
+    ToneStackFilter brightNetL, brightNetR;
+
+    void updateBrightNetworkCoeffs();
+#endif
 
     float cabTrimDb = 0.0f;
     juce::SmoothedValue<float> cabMakeupGain { 1.0f };
@@ -200,6 +229,9 @@ private:
 
     uint32_t noiseStateL = 123456789u;
     uint32_t noiseStateR = 987654321u;
+    // V1A input noise amplitude. 1e-7 is in the ballpark of physical 12AX7
+    // input noise; the old 1e-5 put the render floor ~2 orders too hot.
+    float noiseInjectLevel = 1e-7f;
     double currentSampleRate = 44100.0;
     double oversampledRate   = 44100.0 * 4.0;
     int    lastCabinetType   = -1;

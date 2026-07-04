@@ -64,7 +64,7 @@ AmpSimPlatinum::AmpSimPlatinum()
     setBypassed(true);
 
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
-        2, 2, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true);
+        2, kOsStages, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true);
 
     configureTriodeStages();
     configurePowerAmpStages();
@@ -214,12 +214,23 @@ void AmpSimPlatinum::applyGainMode()
 void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
-    oversampledRate   = sampleRate * 4.0;
+
+    size_t osStages = kOsStages;
+    auto   osFilter = juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR;
+#if ORB_OFFLINE_TOOLS
+    osStages = static_cast<size_t>(diag.osStages);
+    if (diag.osFir)
+        osFilter = juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple;
+#endif
+    const int osFactor = 1 << osStages;
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        2, osStages, osFilter, true);
+    oversampledRate = sampleRate * osFactor;
 
     oversampling->initProcessing(static_cast<size_t>(samplesPerBlock));
     oversampling->reset();
 
-    const int osBlockSize = samplesPerBlock * 4;
+    const int osBlockSize = samplesPerBlock * osFactor;
 
     v1aL.prepare(oversampledRate); v1aR.prepare(oversampledRate);
     v1bL.prepare(oversampledRate); v1bR.prepare(oversampledRate);
@@ -366,6 +377,9 @@ void AmpSimPlatinum::reset()
     odC25LpfL = 0.0f; odC25LpfR = 0.0f;
     v2bMillerLpfL = 0.0f; v2bMillerLpfR = 0.0f;
     gainFilterL.reset(); gainFilterR.reset();
+#if ORB_OFFLINE_TOOLS
+    brightNetL.reset();  brightNetR.reset();
+#endif
     toneStackL.reset();  toneStackR.reset();
     xfmrHpfL.reset();    xfmrHpfR.reset();
 
@@ -537,7 +551,7 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
                 ns ^= ns >> 17;
                 ns ^= ns << 5;
                 float noise = (static_cast<float>(ns) / 2147483648.0f - 1.0f);
-                s += noise * 1e-5f;
+                s += noise * noiseInjectLevel;
             }
 
             //------------------------------------------------------------------
@@ -561,8 +575,18 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             //------------------------------------------------------------------
             // Stage 4: GAIN network + GAIN pot
             //------------------------------------------------------------------
-            s = gainFilt.processSample(s);
-            s *= 0.242f * gainParam;
+#if ORB_OFFLINE_TOOLS
+            if (diag.brightFix)
+            {
+                auto& brightNet = (ch == 0) ? brightNetL : brightNetR;
+                s = brightNet.processSample(s);
+            }
+            else
+#endif
+            {
+                s = gainFilt.processSample(s);
+                s *= 0.242f * gainParam;
+            }
 
             //------------------------------------------------------------------
             // Stage 5: V1B triode
@@ -977,11 +1001,98 @@ void AmpSimPlatinum::updateCabGainTarget()
 //==============================================================================
 void AmpSimPlatinum::updateGainFilter()
 {
+#if ORB_OFFLINE_TOOLS
+    if (diag.brightFix)
+    {
+        updateBrightNetworkCoeffs();
+        return;
+    }
+#endif
     *gainFilterL.coefficients = *juce::dsp::IIR::Coefficients<float>::makeHighShelf(
         oversampledRate, 1500.0f, 0.707f,
         juce::Decibels::decibelsToGain(10.0f));
     *gainFilterR.coefficients = *gainFilterL.coefficients;
 }
+
+#if ORB_OFFLINE_TOOLS
+//==============================================================================
+// updateBrightNetworkCoeffs
+//==============================================================================
+// RG50TC GAIN1 pot network, wire-traced from the schematic (2026-07-04):
+//   n1 --[R25 || (C20+R24)]-- n2,  n2 --[R26]-- gnd,  VR3 track n2 -> gnd,
+//   C21 bridges n2 -> wiper, wiper feeds V1B grid directly (SW1 GAIN1 throw),
+//   R28 grid leak. C22+R27 wiper->gnd branch dropped (>=10M at audio, <0.2 dB).
+// gainParam is the wiper division fraction (linear), same semantics as the
+// stock 0.242*gain scaling - the A1M taper remap is a separate user-facing
+// change. Cin models V1B Miller input capacitance (physical tube parasitic,
+// not on the schematic). kTrim re-anchors 120 Hz body drive to the stock
+// model at g0.5-0.7 so bench operating points stay drive-comparable.
+void AmpSimPlatinum::updateBrightNetworkCoeffs()
+{
+    constexpr double R24 = 47e3, R25 = 470e3, R26 = 150e3, R28 = 1e6, Rpot = 1e6;
+    constexpr double C20 = 2.2e-9, C21 = 470e-12;
+    constexpr double kTrim = 1.1018;
+
+    const double a   = juce::jlimit(0.0, 0.99, static_cast<double>(gainParam));
+    const double cin = static_cast<double>(diag.brightCinPf) * 1e-12;
+    const double Gt  = 1.0 / (Rpot * (1.0 - a) + 1.0);
+    const double Gb  = 1.0 / (Rpot * a + 1.0);
+    const double G26 = 1.0 / R26;
+
+    // Polynomials in s (ascending powers). With alpha/beta from
+    // Ys = alpha/beta (the R25 || (C20+R24) series element):
+    //   H = alpha*Ytop / [(alpha + beta*(G26 + Ytop))*(Ytop + Ybot) - beta*Ytop^2]
+    const double al0 = 1.0,            al1 = C20 * (R24 + R25);
+    const double be0 = R25,            be1 = R25 * C20 * R24;
+    const double yt0 = Gt,             yt1 = C21;
+    const double yb0 = Gb + 1.0 / R28, yb1 = cin;
+
+    const double N0 = al0 * yt0;
+    const double N1 = al0 * yt1 + al1 * yt0;
+    const double N2 = al1 * yt1;
+
+    const double t0 = al0 + be0 * G26 + be0 * yt0;
+    const double t1 = al1 + be1 * G26 + be0 * yt1 + be1 * yt0;
+    const double t2 = be1 * yt1;
+    const double u0 = yt0 + yb0;
+    const double u1 = yt1 + yb1;
+    const double q0 = yt0 * yt0, q1 = 2.0 * yt0 * yt1, q2 = yt1 * yt1;
+
+    const double D0 = t0 * u0           - be0 * q0;
+    const double D1 = t0 * u1 + t1 * u0 - (be0 * q1 + be1 * q0);
+    const double D2 = t1 * u1 + t2 * u0 - (be0 * q2 + be1 * q1);
+    const double D3 = t2 * u1           - be1 * q2;
+
+    // Bilinear transform at the oversampled rate.
+    const double K  = 2.0 * oversampledRate;
+    const double K2 = K * K;
+    static constexpr double T[4][4] = {
+        { 1.0,  3.0,  3.0,  1.0 },   // (z+1)^3
+        { 1.0,  1.0, -1.0, -1.0 },   // (z-1)(z+1)^2
+        { 1.0, -1.0, -1.0,  1.0 },   // (z-1)^2(z+1)
+        { 1.0, -3.0,  3.0, -1.0 },   // (z-1)^3
+    };
+    const double n[4] = { N0, N1 * K, N2 * K2, 0.0 };
+    const double d[4] = { D0, D1 * K, D2 * K2, D3 * K2 * K };
+    double bz[4] = {}, az[4] = {};
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+        {
+            bz[j] += n[i] * T[i][j];
+            az[j] += d[i] * T[i][j];
+        }
+    const double norm = 1.0 / az[0];
+    for (int j = 0; j < 4; ++j)
+        brightNetL.b[j] = static_cast<float>(kTrim * bz[j] * norm);
+    for (int j = 1; j < 4; ++j)
+        brightNetL.a[j - 1] = static_cast<float>(az[j] * norm);
+
+    for (int j = 0; j < 4; ++j)
+        brightNetR.b[j] = brightNetL.b[j];
+    for (int j = 0; j < 3; ++j)
+        brightNetR.a[j] = brightNetL.a[j];
+}
+#endif
 
 //==============================================================================
 // updateToneStackCoeffs
@@ -1173,3 +1284,37 @@ void AmpSimPlatinum::updateMicPositionFilter()
     *micPositionFilter.state = *juce::dsp::IIR::Coefficients<float>::makeHighShelf(
         currentSampleRate, 1500.0f, 0.707f, juce::Decibels::decibelsToGain(db));
 }
+
+#if ORB_OFFLINE_TOOLS
+bool AmpSimPlatinum::setDiagnostic(const juce::String& key, float value)
+{
+    if (key == "osfactor")
+    {
+        const int f = static_cast<int>(value);
+        if (f != 2 && f != 4 && f != 8 && f != 16 && f != 32)
+            return false;
+        int stages = 0;
+        for (int v = f; v > 1; v >>= 1)
+            ++stages;
+        diag.osStages = stages;
+        return true;
+    }
+    if (key == "osfir") { diag.osFir = value >= 0.5f; return true; }
+    if (key == "noiselevel")
+    {
+        if (value < 0.0f || value > 1.0f)
+            return false;
+        noiseInjectLevel = value;
+        return true;
+    }
+    if (key == "brightfix") { diag.brightFix = value >= 0.5f; return true; }
+    if (key == "brightcin")
+    {
+        if (value < 0.0f || value > 1000.0f)
+            return false;
+        diag.brightCinPf = value;
+        return true;
+    }
+    return false;
+}
+#endif

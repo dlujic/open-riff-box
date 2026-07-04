@@ -21,6 +21,7 @@
 //   --ov-level <0-1>           OV Level (Platinum only, default: 0.7)
 //   --master <0-1>             Master volume (Platinum only, default: 0.3)
 //   --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum only)
+//   --stage-limit <1-9>        Tap after stage N (Platinum debug)
 //
 // Mode 2 - full chain via preset file (--process-file input output --chain-config preset.json):
 //   Loads a preset JSON and runs the complete OpenRiffBoxProcessor chain.
@@ -37,6 +38,13 @@
 //                               equiripple resampler), cone1x (1 = legacy
 //                               base-rate cone), conebypass.
 //                               Pre-C1-fix engine: osfactor=4,cone1x=1.
+//   --plat-diag k=v[,k=v...]    Platinum diagnostic overrides (valid in both
+//                               modes): osfactor (2/4/8/16/32, stock 4),
+//                               osfir (1 = FIR equiripple resampler),
+//                               noiselevel (V1A noise amplitude, default 1e-7,
+//                               1e-5 = pre-C2 stock), brightfix (1 = schematic
+//                               GAIN1 network, default 0), brightcin (V1B
+//                               Miller capacitance in pF, default 110).
 //
 // Supports FLAC and WAV input/output (detected by file extension).
 // Output format: 24-bit FLAC or 32-bit float WAV (raw renders can exceed

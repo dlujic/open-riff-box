@@ -74,6 +74,13 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             equiripple resampler), cone1x (1 = legacy\n"
                   << "                             base-rate cone), conebypass\n"
                   << "                             (pre-C1-fix behavior: osfactor=4,cone1x=1)\n"
+                  << "  --plat-diag k=v[,k=v...]   Platinum diagnostic overrides (both modes).\n"
+                  << "                             Keys: osfactor (2/4/8/16/32, stock 4),\n"
+                  << "                             osfir (1 = FIR equiripple resampler),\n"
+                  << "                             noiselevel (V1A noise amplitude, default\n"
+                  << "                             1e-7, 1e-5 = pre-C2 stock), brightfix\n"
+                  << "                             (1 = schematic GAIN1 network, default 0),\n"
+                  << "                             brightcin (V1B Miller pF, default 110)\n"
                   << std::flush;
         return true;
     }
@@ -217,6 +224,37 @@ bool runOfflineProcessor(const juce::StringArray& args)
                     return true;
                 }
                 std::cout << "SILVER-DIAG: " << key << " = " << val.getFloatValue() << "\n";
+            }
+            std::cout << std::flush;
+        }
+
+        int platDiagIdx = args.indexOf("--plat-diag");
+        if (platDiagIdx >= 0)
+        {
+            if (platDiagIdx + 1 >= args.size())
+            {
+                std::cerr << "ERROR: --plat-diag requires key=value[,key=value...]" << std::endl;
+                return true;
+            }
+            auto* plat = dynamic_cast<AmpSimPlatinum*>(
+                processor->getEffectChain().getEffectByName("Amp Platinum"));
+            if (plat == nullptr)
+            {
+                std::cerr << "ERROR: Amp Platinum not found in chain" << std::endl;
+                return true;
+            }
+            auto tokens = juce::StringArray::fromTokens(args[platDiagIdx + 1], ",;", "");
+            for (const auto& tok : tokens)
+            {
+                auto key = tok.upToFirstOccurrenceOf("=", false, false).trim().toLowerCase();
+                auto val = tok.fromFirstOccurrenceOf("=", false, false).trim();
+                if (key.isEmpty() || val.isEmpty()
+                    || !plat->setDiagnostic(key, val.getFloatValue()))
+                {
+                    std::cerr << "ERROR: bad --plat-diag token: " << tok << std::endl;
+                    return true;
+                }
+                std::cout << "PLAT-DIAG: " << key << " = " << val.getFloatValue() << "\n";
             }
             std::cout << std::flush;
         }
@@ -485,6 +523,25 @@ bool runOfflineProcessor(const juce::StringArray& args)
         plat->setCabinetType(cabinet);
         if (stageLimit > 0)
             plat->setStageLimit(stageLimit);
+
+        int platDiagIdx = args.indexOf("--plat-diag");
+        if (platDiagIdx >= 0 && platDiagIdx + 1 < args.size())
+        {
+            auto tokens = juce::StringArray::fromTokens(args[platDiagIdx + 1], ",;", "");
+            for (const auto& tok : tokens)
+            {
+                auto key = tok.upToFirstOccurrenceOf("=", false, false).trim().toLowerCase();
+                auto val = tok.fromFirstOccurrenceOf("=", false, false).trim();
+                if (key.isEmpty() || val.isEmpty()
+                    || !plat->setDiagnostic(key, val.getFloatValue()))
+                {
+                    std::cerr << "ERROR: bad --plat-diag token: " << tok << std::endl;
+                    return true;
+                }
+                std::cout << "PLAT-DIAG: " << key << " = " << val.getFloatValue() << "\n";
+            }
+            std::cout << std::flush;
+        }
         effect = std::move(plat);
     }
     else
