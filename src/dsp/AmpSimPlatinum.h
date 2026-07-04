@@ -53,7 +53,8 @@ public:
     // Keys: osfactor (2/4/8/16/32, stock 4), osfir (1 = FIR equiripple resampler),
     //       noiselevel (V1A noise inject amplitude, 1e-5 = pre-C2 stock),
     //       brightfix (1 = schematic-derived GAIN1 network, default 0),
-    //       brightcin (V1B Miller capacitance in pF for brightfix, default 110)
+    //       brightcin (V1B Miller capacitance in pF for brightfix, default 110),
+    //       c59 (1 = LTP plate-to-plate 47p, default 0)
     bool setDiagnostic(const juce::String& key, float value);
 #endif
 
@@ -205,6 +206,7 @@ private:
         bool  osFir       = false;
         bool  brightFix   = false;
         float brightCinPf = 110.0f;
+        bool  c59         = false;
     };
     Diag diag;
 
@@ -213,6 +215,11 @@ private:
     ToneStackFilter brightNetL, brightNetR;
 
     void updateBrightNetworkCoeffs();
+
+    // C59 arm: one-pole LPF on the LTP differential plate signal.
+    float c59LpfCoeff   = 0.0f;
+    float c59DiffStateL = 0.0f;
+    float c59DiffStateR = 0.0f;
 #endif
 
     float cabTrimDb = 0.0f;

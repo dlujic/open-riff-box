@@ -80,7 +80,8 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             noiselevel (V1A noise amplitude, default\n"
                   << "                             1e-7, 1e-5 = pre-C2 stock), brightfix\n"
                   << "                             (1 = schematic GAIN1 network, default 0),\n"
-                  << "                             brightcin (V1B Miller pF, default 110)\n"
+                  << "                             brightcin (V1B Miller pF, default 110),\n"
+                  << "                             c59 (1 = LTP plate-to-plate 47p, default 0)\n"
                   << std::flush;
         return true;
     }

@@ -44,7 +44,9 @@
 //                               noiselevel (V1A noise amplitude, default 1e-7,
 //                               1e-5 = pre-C2 stock), brightfix (1 = schematic
 //                               GAIN1 network, default 0), brightcin (V1B
-//                               Miller capacitance in pF, default 110).
+//                               Miller capacitance in pF, default 110),
+//                               c59 (1 = LTP plate-to-plate 47p, 113.4 kHz
+//                               differential corner, default 0).
 //
 // Supports FLAC and WAV input/output (detected by file extension).
 // Output format: 24-bit FLAC or 32-bit float WAV (raw renders can exceed

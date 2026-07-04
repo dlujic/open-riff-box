@@ -3,6 +3,26 @@
 
 #include <cmath>
 
+#if ORB_OFFLINE_TOOLS
+// C59 diag arm (out of line to keep the hot loop lean). Any code added to
+// this function perturbs MSVC's scheduling of the float32 NR loops, so
+// builds carrying the arm sit <= 1 ULP from pre-arm renders - codegen,
+// not semantics. Bench nulls re-baselined accordingly.
+#if defined(_MSC_VER)
+ #define ORB_NOINLINE __declspec(noinline)
+#else
+ #define ORB_NOINLINE __attribute__((noinline))
+#endif
+static ORB_NOINLINE void applyC59Damper(float& diffState, float coeff,
+                                        float& plateA, float& plateB)
+{
+    const float cm = 0.5f * (plateA + plateB);
+    diffState += coeff * ((plateA - plateB) - diffState);
+    plateA = cm + 0.5f * diffState;
+    plateB = cm - 0.5f * diffState;
+}
+#endif
+
 //==============================================================================
 // Cabinet names
 //==============================================================================
@@ -290,6 +310,18 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
     leakageLpfStateL = 0.0f;
     leakageLpfStateR = 0.0f;
 
+#if ORB_OFFLINE_TOOLS
+    // C59 47p plate-to-plate at the LTP: differential corner 1/(2pi*Zdiff*C59),
+    // Zdiff = 29.9K from the small-signal solve at the quiescent point
+    // (cathode coupling + 220K EL34 grid leaks included) -> 113.4 kHz.
+    // Supersonic by construction; the arm closes the damper trail with a
+    // measured null rather than an assumption.
+    c59LpfCoeff = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi
+                                   * 113400.0f / static_cast<float>(oversampledRate));
+    c59DiffStateL = 0.0f;
+    c59DiffStateR = 0.0f;
+#endif
+
     nfbLpfCoeff = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * 723.0f
                                    / static_cast<float>(oversampledRate));
     nfbFilteredStateL = 0.0f;
@@ -379,6 +411,7 @@ void AmpSimPlatinum::reset()
     gainFilterL.reset(); gainFilterR.reset();
 #if ORB_OFFLINE_TOOLS
     brightNetL.reset();  brightNetR.reset();
+    c59DiffStateL = 0.0f; c59DiffStateR = 0.0f;
 #endif
     toneStackL.reset();  toneStackR.reset();
     xfmrHpfL.reset();    xfmrHpfR.reset();
@@ -521,6 +554,9 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
         auto& leakLpf   = (ch == 0) ? leakageLpfStateL : leakageLpfStateR;
         auto& prevSpkr  = (ch == 0) ? prevSpeakerOutL : prevSpeakerOutR;
         const float v3aNorm = (ch == 0) ? v3aNormL : v3aNormR;
+#if ORB_OFFLINE_TOOLS
+        const bool c59Enabled = diag.c59;
+#endif
 
         const float master    = masterSmoothed.getCurrentValue();
 
@@ -809,6 +845,12 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
 
                 float v4a_plateAC = (BPLUS_J4 - Ip_A * RP_V4A) - v4a_Vp_q;
                 float v4b_plateAC = (BPLUS_J4 - Ip_B * RP_V4B) - v4b_Vp_q;
+
+#if ORB_OFFLINE_TOOLS
+                if (c59Enabled)
+                    applyC59Damper((ch == 0) ? c59DiffStateL : c59DiffStateR,
+                                   c59LpfCoeff, v4a_plateAC, v4b_plateAC);
+#endif
 
                 //--------------------------------------------------------------
                 // Stage 18d: V5/V6 EL34 push-pull
@@ -1315,6 +1357,7 @@ bool AmpSimPlatinum::setDiagnostic(const juce::String& key, float value)
         diag.brightCinPf = value;
         return true;
     }
+    if (key == "c59") { diag.c59 = value >= 0.5f; return true; }
     return false;
 }
 #endif
