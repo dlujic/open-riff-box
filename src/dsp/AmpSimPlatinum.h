@@ -33,6 +33,14 @@ public:
     void setMicPosition(float value);   // 0-1
     void setCabTrim(float dB);          // -12 to +12
 
+    void setChannel(int value);         // 0=OD (default), 1=Normal
+    void setBoost(bool value);          // Normal voicing: false=CLEAN, true=BOOST
+    void setInputLow(bool value);       // false=HIGH (default), true=LOW (-6dB pad)
+    void setNormalBass(float value);    // 0-1, Normal channel EQ (VR5)
+    void setNormalMid(float value);     // 0-1, Normal channel EQ (VR6)
+    void setNormalTreble(float value);  // 0-1, Normal channel EQ (VR7)
+    void setNormalLevel(float value);   // 0-1, Normal channel LEVEL (VR1)
+
     // Maps a pre-v2 preset master (flat multiplier) to the knob position that
     // produces the same drive under the VR12 pot law. Used on preset load.
     static float remapLegacyMaster(float oldLinear);
@@ -48,6 +56,14 @@ public:
     int   getCabinetType()  const { return cabinetTypeParam.load(std::memory_order_acquire); }
     float getMicPosition()  const { return micPositionParam; }
     float getCabTrim()      const { return cabTrimDb; }
+
+    int   getChannel()      const { return channelParam.load(std::memory_order_acquire); }
+    bool  getBoost()        const { return boostParam.load(std::memory_order_acquire); }
+    bool  getInputLow()     const { return inputLowParam.load(std::memory_order_acquire); }
+    float getNormalBass()   const { return normalBassParam; }
+    float getNormalMid()    const { return normalMidParam; }
+    float getNormalTreble() const { return normalTrebleParam; }
+    float getNormalLevel()  const { return normalLevelParam; }
 
     void setStageLimit(int limit) { stageLimit = limit; }
 
@@ -104,7 +120,8 @@ private:
 
     float v1aMillerLpfL = 0.0f;
     float v1aMillerLpfR = 0.0f;
-    float v1aMillerCoeff = 0.0f;
+    float v1aMillerCoeff = 0.0f;         // OD input corner, 1620 Hz (unchanged)
+    float v1aMillerCoeffNormal = 0.0f;   // Normal input corner, 3973 Hz
 
     float v4bGridLpfL = 0.0f;   // V4B grid input pole (master Rs || grid load into Cin)
     float v4bGridLpfR = 0.0f;
@@ -146,6 +163,30 @@ private:
     };
 
     ToneStackFilter toneStackL, toneStackR;
+
+    // Normal-channel voicing ladder (JC6 -> V2A_GRID), fixed per CLEAN/BOOST;
+    // both coeff sets computed once at prepare() from the s-domain polys,
+    // selected by the boost flag at runtime (engine_spec.md sec 2).
+    ToneStackFilter ladderCleanL, ladderCleanR;
+    ToneStackFilter ladderBoostL, ladderBoostR;
+
+    // VR1 LEVEL + C13 bright cap: one knob-tracked first-order shelf.
+    struct ShelfFilter
+    {
+        float b0 = 1.0f, b1 = 0.0f, a0 = 0.0f;
+        float x1 = 0.0f, y1 = 0.0f;
+
+        void reset() { x1 = 0.0f; y1 = 0.0f; }
+
+        float processSample(float input)
+        {
+            float output = b0 * input + b1 * x1 - a0 * y1;
+            x1 = input;
+            y1 = output;
+            return output;
+        }
+    };
+    ShelfFilter vr1c13L, vr1c13R;
 
     float v4a_IpPrevL = 0.0f, v4a_IpPrevR = 0.0f;  // V4A NR initial guess
     float v4b_IpPrevL = 0.0f, v4b_IpPrevR = 0.0f;  // V4B NR initial guess
@@ -208,6 +249,16 @@ private:
     std::atomic<int>  gainModeParam    { 0 };
     std::atomic<int>  cabinetTypeParam { 0 };
 
+    std::atomic<int>  channelParam   { 0 };      // 0=OD, 1=Normal
+    std::atomic<bool> boostParam     { false };  // Normal CLEAN/BOOST
+    std::atomic<bool> inputLowParam  { false };  // false=HIGH, true=LOW
+
+    float normalBassParam   = 0.5f;
+    float normalMidParam    = 0.5f;
+    float normalTrebleParam = 0.5f;
+    float normalLevelParam  = 0.5f;
+    juce::SmoothedValue<float> normalLevelSmoothed;
+
     static constexpr float kLevelMakeupDb = 3.0f;
     static constexpr size_t kOsStages = 2;  // 4x oversampling
 
@@ -250,6 +301,19 @@ private:
     float lastTrebleParam      = -1.0f;
     float lastMicPositionParam = -1.0f;
     int   lastGainMode         = -1;
+
+    float lastNormalBassParam    = -1.0f;
+    float lastNormalMidParam     = -1.0f;
+    float lastNormalTrebleParam  = -1.0f;
+    int   lastChannel  = 0;
+    bool  lastBoost    = false;
+    bool  lastInputLow = false;
+
+    // Channel/boost/jack switch click: brief output mute masks the DSP-state
+    // discontinuity (real amp mutes ~150ms via JFETs; engine_spec.md sec 7).
+    int   muteGapRampSamples = 0;   // one ramp leg, ~8ms at oversampledRate
+    int   muteGapRemainingL  = 0;
+    int   muteGapRemainingR  = 0;
 
     int    stageLimit        = 0;  // 0=full chain, 1-9=tap after stage N
 

@@ -13,6 +13,7 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     setupKnob(midKnob,          midLabel,          "Mid",        0.0, 1.0, 0.01);
     setupKnob(trebleKnob,       trebleLabel,       "Treble",     0.0, 1.0, 0.01);
     setupKnob(micPositionKnob,  micPositionLabel,  "Mic",        0.0, 1.0, 0.01);
+    setupKnob(normalLevelKnob,  normalLevelLabel,  "Level",      0.0, 1.0, 0.01);
 
     // Mic position: show dB (-4 to +4)
     micPositionKnob.textFromValueFunction = [](double v) {
@@ -28,20 +29,35 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
         platinumRef.setGain(static_cast<float>(gainKnob.getValue()));
         onParameterChanged();
     };
+    // Bass/Mid/Treble drive whichever channel is active - OD's VR8/9/10 or
+    // Normal's VR5/6/7 (engine_spec.md sec 10).
     bassKnob.onValueChange = [this] {
-        platinumRef.setBass(static_cast<float>(bassKnob.getValue()));
+        if (platinumRef.getChannel() == 1)
+            platinumRef.setNormalBass(static_cast<float>(bassKnob.getValue()));
+        else
+            platinumRef.setBass(static_cast<float>(bassKnob.getValue()));
         onParameterChanged();
     };
     midKnob.onValueChange = [this] {
-        platinumRef.setMid(static_cast<float>(midKnob.getValue()));
+        if (platinumRef.getChannel() == 1)
+            platinumRef.setNormalMid(static_cast<float>(midKnob.getValue()));
+        else
+            platinumRef.setMid(static_cast<float>(midKnob.getValue()));
         onParameterChanged();
     };
     trebleKnob.onValueChange = [this] {
-        platinumRef.setTreble(static_cast<float>(trebleKnob.getValue()));
+        if (platinumRef.getChannel() == 1)
+            platinumRef.setNormalTreble(static_cast<float>(trebleKnob.getValue()));
+        else
+            platinumRef.setTreble(static_cast<float>(trebleKnob.getValue()));
         onParameterChanged();
     };
     micPositionKnob.onValueChange = [this] {
         platinumRef.setMicPosition(static_cast<float>(micPositionKnob.getValue()));
+        onParameterChanged();
+    };
+    normalLevelKnob.onValueChange = [this] {
+        platinumRef.setNormalLevel(static_cast<float>(normalLevelKnob.getValue()));
         onParameterChanged();
     };
 
@@ -103,6 +119,39 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
         onParameterChanged();
     };
     addAndMakeVisible(gainModeButton);
+
+    // Channel toggle (OD/Normal) - swaps Bass/Mid/Treble source and the
+    // enabled OD-only controls, so route it through syncFromDsp().
+    channelButton.setLookAndFeel(&resetLF);
+    channelButton.setClickingTogglesState(false);
+    channelButton.onClick = [this] {
+        platinumRef.setChannel(platinumRef.getChannel() == 0 ? 1 : 0);
+        syncFromDsp();
+        onParameterChanged();
+    };
+    addAndMakeVisible(channelButton);
+
+    // Normal CLEAN/BOOST toggle
+    boostButton.setLookAndFeel(&resetLF);
+    boostButton.setClickingTogglesState(false);
+    boostButton.onClick = [this] {
+        bool next = !platinumRef.getBoost();
+        platinumRef.setBoost(next);
+        boostButton.setButtonText(next ? "BOOST" : "CLEAN");
+        onParameterChanged();
+    };
+    addAndMakeVisible(boostButton);
+
+    // Input jack toggle (LOW/HIGH)
+    jackButton.setLookAndFeel(&resetLF);
+    jackButton.setClickingTogglesState(false);
+    jackButton.onClick = [this] {
+        bool next = !platinumRef.getInputLow();
+        platinumRef.setInputLow(next);
+        jackButton.setButtonText(next ? "LOW" : "HIGH");
+        onParameterChanged();
+    };
+    addAndMakeVisible(jackButton);
 
     // Cabinet selector ComboBox
     for (int i = 0; i < AmpSimPlatinum::kNumCabinets; ++i)
@@ -240,9 +289,13 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     midKnob.setTooltip("Mid control - tone stack.");
     trebleKnob.setTooltip("Treble control - tone stack.");
     micPositionKnob.setTooltip("Mic placement - low = close/dark (on-cone), high = bright/airy (off-axis).");
+    normalLevelKnob.setTooltip("Normal channel LEVEL - also the bright cap: low = dark and quiet, high = loud and flat.");
     ovLevelSlider.setTooltip("OV Level - attenuator after the overdrive channel (V3 stage input level).");
     masterSlider.setTooltip("Master volume - controls push-pull power amp output level.");
     gainModeButton.setTooltip("GAIN1 = lower gain (clean to crunch). GAIN2 = high gain channel.");
+    channelButton.setTooltip("Switch between the OD and Normal (clean) channel.");
+    boostButton.setTooltip("Normal channel voicing: CLEAN or BOOST.");
+    jackButton.setTooltip("Input jack: HIGH (full level) or LOW (-6dB pad).");
     cabinetSelector.setTooltip("Select the speaker cabinet impulse response.");
     cabTrimSlider.setTooltip("Manual cabinet volume trim. Adjusts on top of auto-normalization.");
     loadIRButton.setTooltip("Load a custom cabinet IR (.wav file).");
@@ -274,28 +327,49 @@ AmpSimPlatinumPanel::~AmpSimPlatinumPanel()
     midKnob.setLookAndFeel(nullptr);
     trebleKnob.setLookAndFeel(nullptr);
     micPositionKnob.setLookAndFeel(nullptr);
+    normalLevelKnob.setLookAndFeel(nullptr);
     ovLevelSlider.setLookAndFeel(nullptr);
     masterSlider.setLookAndFeel(nullptr);
     cabTrimSlider.setLookAndFeel(nullptr);
     cabinetSelector.setLookAndFeel(nullptr);
     loadIRButton.setLookAndFeel(nullptr);
     gainModeButton.setLookAndFeel(nullptr);
+    channelButton.setLookAndFeel(nullptr);
+    boostButton.setLookAndFeel(nullptr);
+    jackButton.setLookAndFeel(nullptr);
     bypassButton.setLookAndFeel(nullptr);
     resetButton.setLookAndFeel(nullptr);
 }
 
 void AmpSimPlatinumPanel::syncFromDsp()
 {
-    gainKnob.setValue(platinumRef.getGain(),               juce::dontSendNotification);
-    bassKnob.setValue(platinumRef.getBass(),               juce::dontSendNotification);
-    midKnob.setValue(platinumRef.getMid(),                 juce::dontSendNotification);
-    trebleKnob.setValue(platinumRef.getTreble(),           juce::dontSendNotification);
+    const bool isNormal = (platinumRef.getChannel() == 1);
+
+    gainKnob.setValue(platinumRef.getGain(), juce::dontSendNotification);
+    bassKnob.setValue(isNormal ? platinumRef.getNormalBass()   : platinumRef.getBass(),
+                       juce::dontSendNotification);
+    midKnob.setValue(isNormal ? platinumRef.getNormalMid()     : platinumRef.getMid(),
+                      juce::dontSendNotification);
+    trebleKnob.setValue(isNormal ? platinumRef.getNormalTreble() : platinumRef.getTreble(),
+                         juce::dontSendNotification);
     micPositionKnob.setValue(platinumRef.getMicPosition(), juce::dontSendNotification);
+    normalLevelKnob.setValue(platinumRef.getNormalLevel(), juce::dontSendNotification);
     ovLevelSlider.setValue(platinumRef.getOvLevel(),       juce::dontSendNotification);
     masterSlider.setValue(platinumRef.getMaster(),         juce::dontSendNotification);
     cabTrimSlider.setValue(platinumRef.getCabTrim(),       juce::dontSendNotification);
 
     gainModeButton.setButtonText(platinumRef.getGainMode() == 0 ? "GAIN1" : "GAIN2");
+
+    channelButton.setButtonText(isNormal ? "NORMAL" : "OD");
+    boostButton.setButtonText(platinumRef.getBoost() ? "BOOST" : "CLEAN");
+    jackButton.setButtonText(platinumRef.getInputLow() ? "LOW" : "HIGH");
+
+    // OD-only controls are inert on the Normal channel (engine_spec.md sec 10);
+    // the Level knob is the mirror image - only meaningful on Normal.
+    gainKnob.setEnabled(!isNormal);
+    ovLevelSlider.setEnabled(!isNormal);
+    gainModeButton.setEnabled(!isNormal);
+    normalLevelKnob.setEnabled(isNormal);
 
     int cabType = platinumRef.getCabinetType();
     if (cabType == AmpSimPlatinum::kCustomCabinet)
@@ -342,7 +416,7 @@ void AmpSimPlatinumPanel::resized()
     area.removeFromTop(16);
 
     //--------------------------------------------------------------------------
-    // Split into left column (Gain/Bass/Mid) and right column (Treble/Mic)
+    // Split into left column (Gain/Bass/Mid) and right column (Treble/Mic/Level)
     //--------------------------------------------------------------------------
     const int sliderW    = Theme::Dims::sliderWidth;
     const int sliderH    = Theme::Dims::sliderHeight;
@@ -373,14 +447,14 @@ void AmpSimPlatinumPanel::resized()
     }
 
     //--------------------------------------------------------------------------
-    // Right column: Treble / Mic sliders
+    // Right column: Treble / Mic / (Normal) Level sliders
     //--------------------------------------------------------------------------
     auto rightSliderArea = rightCol.removeFromTop(cellHeight);
 
-    juce::Slider* rightSliders[] = { &trebleKnob, &micPositionKnob };
-    juce::Label*  rightLabels[]  = { &trebleLabel, &micPositionLabel };
+    juce::Slider* rightSliders[] = { &trebleKnob, &micPositionKnob, &normalLevelKnob };
+    juce::Label*  rightLabels[]  = { &trebleLabel, &micPositionLabel, &normalLevelLabel };
 
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 3; ++i)
     {
         auto cell = rightSliderArea.removeFromLeft(cellWidth);
         rightLabels[i]->setBounds(cell.removeFromTop(labelH));
@@ -424,9 +498,15 @@ void AmpSimPlatinumPanel::resized()
 
     belowArea.removeFromTop(8);
 
-    // GAIN1/GAIN2 toggle
+    // GAIN1/GAIN2 toggle + Channel/Boost/Jack toggles
     auto gainModeRow = belowArea.removeFromTop(30);
     gainModeButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
+    gainModeRow.removeFromLeft(8);
+    channelButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
+    gainModeRow.removeFromLeft(8);
+    boostButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
+    gainModeRow.removeFromLeft(8);
+    jackButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
 }
 
 void AmpSimPlatinumPanel::setupKnob(juce::Slider& knob, juce::Label& label,

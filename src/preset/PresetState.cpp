@@ -138,7 +138,14 @@ Preset capture(OpenRiffBoxProcessor& processor)
             { "gainMode",    plat->getGainMode() },
             { "cabinetType", plat->getCabinetType() },
             { "micPosition", plat->getMicPosition() },
-            { "cabTrim",     plat->getCabTrim() }
+            { "cabTrim",     plat->getCabTrim() },
+            { "channel",       plat->getChannel() },
+            { "boost",         plat->getBoost() },
+            { "inputLow",      plat->getInputLow() },
+            { "normalBass",    plat->getNormalBass() },
+            { "normalMid",     plat->getNormalMid() },
+            { "normalTreble",  plat->getNormalTreble() },
+            { "normalLevel",   plat->getNormalLevel() }
         });
     }
 
@@ -450,6 +457,13 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 plat->setCabinetType(getInt(v, "cabinetType", 0));
                 plat->setMicPosition(getDouble(v, "micPosition", 0.5));
                 plat->setCabTrim(static_cast<float>(getDouble(v, "cabTrim", 0.0)));
+                plat->setChannel(getInt(v, "channel", 0));
+                plat->setBoost(getBool(v, "boost", false));
+                plat->setInputLow(getBool(v, "inputLow", false));
+                plat->setNormalBass(getDouble(v, "normalBass", 0.5));
+                plat->setNormalMid(getDouble(v, "normalMid", 0.5));
+                plat->setNormalTreble(getDouble(v, "normalTreble", 0.5));
+                plat->setNormalLevel(getDouble(v, "normalLevel", 0.5));
             }
         }
         else
@@ -469,6 +483,13 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 plat->setCabinetType(0);
                 plat->setMicPosition(0.5f);
                 plat->setCabTrim(0.0f);
+                plat->setChannel(0);
+                plat->setBoost(false);
+                plat->setInputLow(false);
+                plat->setNormalBass(0.5f);
+                plat->setNormalMid(0.5f);
+                plat->setNormalTreble(0.5f);
+                plat->setNormalLevel(0.5f);
             }
         }
     }

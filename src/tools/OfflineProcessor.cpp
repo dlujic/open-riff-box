@@ -52,12 +52,18 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "  --brightness <0-1>         Brightness (default: 0.6)\n"
                   << "  --mic-position <0-1>       Mic position (default: 0.5)\n"
                   << "  --cabinet <0-15>           Cabinet (0-13=named, 14=none, 15=custom)\n"
-                  << "  --boost                    Enable preamp boost (Gold only)\n"
+                  << "  --boost                    Enable preamp boost (Gold); Normal\n"
+                  << "                             CLEAN/BOOST toggle (Platinum)\n"
                   << "  --ov-level <0-1>           OV Level (Platinum, default: 0.7)\n"
                   << "  --master <0-1>             Master knob (Platinum, default: 0.64;\n"
                   << "                             VR12 A-taper + loading in the engine)\n"
                   << "  --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum)\n"
                   << "  --stage-limit <1-9>        Tap after stage N (Platinum debug)\n"
+                  << "  --channel <od|normal>      Platinum channel switch (default: od)\n"
+                  << "  --input-jack <high|low>    Platinum input jack (default: high)\n"
+                  << "  --normal-level <0-1>       Platinum Normal LEVEL, VR1 (default: 0.5);\n"
+                  << "                             --bass/--mid/--treble double as the Normal\n"
+                  << "                             EQ (VR5/6/7) when --channel normal is set\n"
                   << "\n  Gold internal overrides:\n"
                   << "  --x-char-gain <float>      Character stage input gain (default: 0.3)\n"
                   << "  --x-drive-exp <float>      Preamp drive curve exponent (default: 2.0)\n"
@@ -105,7 +111,8 @@ bool runOfflineProcessor(const juce::StringArray& args)
             "--engine", "--gain", "--bass", "--mid", "--treble",
             "--speaker-drive", "--brightness", "--mic-position", "--cabinet", "--boost",
             "--ov-level", "--master", "--gain-mode", "--stage-limit",
-            "--x-char-gain", "--x-drive-exp", "--x-nfb-gain", nullptr
+            "--x-char-gain", "--x-drive-exp", "--x-nfb-gain",
+            "--channel", "--input-jack", "--normal-level", nullptr
         };
         for (int f = 0; legacyFlags[f] != nullptr; ++f)
         {
@@ -445,6 +452,13 @@ bool runOfflineProcessor(const juce::StringArray& args)
     float master       = parseParam("--master",        0.64f);
     int   gainMode     = static_cast<int>(parseParam("--gain-mode", 0.0f));
 
+    // Platinum channel switch (Normal clean channel bench A/B)
+    juce::String channelStr = parseString("--channel", "od");
+    bool platinumNormal      = channelStr.equalsIgnoreCase("normal");
+    juce::String inputJack   = parseString("--input-jack", "high");
+    bool inputLow            = inputJack.equalsIgnoreCase("low");
+    float normalLevel        = parseParam("--normal-level", 0.5f);
+
     // Debug: stage limit for noise tracing (Platinum only)
     int   stageLimit   = static_cast<int>(parseParam("--stage-limit", 0.0f));
 
@@ -492,7 +506,12 @@ bool runOfflineProcessor(const juce::StringArray& args)
     {
         std::cout << "  OV Level:      " << ovLevel << "\n"
                   << "  Master:        " << master << "\n"
-                  << "  Gain Mode:     " << (gainMode == 0 ? "GAIN1" : "GAIN2") << "\n";
+                  << "  Gain Mode:     " << (gainMode == 0 ? "GAIN1" : "GAIN2") << "\n"
+                  << "  Channel:       " << (platinumNormal ? "Normal" : "OD") << "\n"
+                  << "  Input Jack:    " << (inputLow ? "LOW" : "HIGH") << "\n";
+        if (platinumNormal)
+            std::cout << "  Boost:         " << (boost ? "BOOST" : "CLEAN") << "\n"
+                      << "  Normal Level:  " << normalLevel << "\n";
         if (stageLimit > 0)
             std::cout << "  Stage Limit:   " << stageLimit << " (debug tap)\n";
     }
@@ -527,6 +546,15 @@ bool runOfflineProcessor(const juce::StringArray& args)
         plat->setGainMode(gainMode);
         plat->setMicPosition(micPosition);
         plat->setCabinetType(cabinet);
+        plat->setChannel(platinumNormal ? 1 : 0);
+        plat->setBoost(boost);
+        plat->setInputLow(inputLow);
+        // --bass/--mid/--treble double as the Normal EQ so bench A/B doesn't
+        // need a second set of flag names (engine_spec.md sec 11).
+        plat->setNormalBass(bass);
+        plat->setNormalMid(mid);
+        plat->setNormalTreble(treble);
+        plat->setNormalLevel(normalLevel);
         if (stageLimit > 0)
             plat->setStageLimit(stageLimit);
 

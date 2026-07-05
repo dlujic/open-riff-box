@@ -42,12 +42,14 @@ private:
     juce::Label bassLabel;
     juce::Label midLabel;
 
-    // Right column: Treble / Mic
+    // Right column: Treble / Mic / (Normal) Level
     juce::Slider trebleKnob;
     juce::Slider micPositionKnob;
+    juce::Slider normalLevelKnob;
 
     juce::Label trebleLabel;
     juce::Label micPositionLabel;
+    juce::Label normalLevelLabel;
 
     // OV Level horizontal slider
     juce::Slider ovLevelSlider;
@@ -59,6 +61,11 @@ private:
 
     // GAIN1/GAIN2 toggle button
     juce::TextButton gainModeButton;
+
+    // Channel / CLEAN-BOOST / LOW-HIGH toggles
+    juce::TextButton channelButton;
+    juce::TextButton boostButton;
+    juce::TextButton jackButton;
 
     // Cabinet ComboBox + custom IR loading
     juce::ComboBox cabinetSelector;

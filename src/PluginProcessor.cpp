@@ -289,6 +289,13 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("cabinetType",   plat->getCabinetType());
         e->setAttribute("micPosition",   plat->getMicPosition());
         e->setAttribute("cabTrim",       plat->getCabTrim());
+        e->setAttribute("channel",       plat->getChannel());
+        e->setAttribute("boost",         plat->getBoost());
+        e->setAttribute("inputLow",      plat->getInputLow());
+        e->setAttribute("normalBass",    plat->getNormalBass());
+        e->setAttribute("normalMid",     plat->getNormalMid());
+        e->setAttribute("normalTreble",  plat->getNormalTreble());
+        e->setAttribute("normalLevel",   plat->getNormalLevel());
     }
 
     if (auto* delay = dynamic_cast<AnalogDelay*>(effectChain.getEffectByName("Delay")))
@@ -538,6 +545,13 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             plat->setCabinetType(platXml->getIntAttribute("cabinetType", 0));
             plat->setMicPosition(static_cast<float>(platXml->getDoubleAttribute("micPosition", 0.5)));
             plat->setCabTrim(static_cast<float>(platXml->getDoubleAttribute("cabTrim", 0.0)));
+            plat->setChannel(platXml->getIntAttribute("channel", 0));
+            plat->setBoost(platXml->getBoolAttribute("boost", false));
+            plat->setInputLow(platXml->getBoolAttribute("inputLow", false));
+            plat->setNormalBass(static_cast<float>(platXml->getDoubleAttribute("normalBass", 0.5)));
+            plat->setNormalMid(static_cast<float>(platXml->getDoubleAttribute("normalMid", 0.5)));
+            plat->setNormalTreble(static_cast<float>(platXml->getDoubleAttribute("normalTreble", 0.5)));
+            plat->setNormalLevel(static_cast<float>(platXml->getDoubleAttribute("normalLevel", 0.5)));
         }
     }
 

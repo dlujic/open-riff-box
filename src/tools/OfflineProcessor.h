@@ -17,12 +17,17 @@
 //   --brightness <0-1>         Brightness (default: 0.6)
 //   --mic-position <0-1>       Mic position (default: 0.5)
 //   --cabinet <0-15>           Cabinet index (0-13=named, 14=none, 15=custom)
-//   --boost                    Enable preamp boost (Gold only)
+//   --boost                    Enable preamp boost (Gold); Normal CLEAN/BOOST (Platinum)
 //   --ov-level <0-1>           OV Level (Platinum only, default: 0.7)
 //   --master <0-1>             Master knob position (Platinum only, default: 0.64;
 //                              VR12 A-taper + loading applied inside the engine)
 //   --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum only)
 //   --stage-limit <1-9>        Tap after stage N (Platinum debug)
+//   --channel <od|normal>      Platinum channel switch (default: od)
+//   --input-jack <high|low>    Platinum input jack (default: high; low = -6dB pad)
+//   --normal-level <0-1>       Platinum Normal channel LEVEL, VR1 (default: 0.5).
+//                              --bass/--mid/--treble double as the Normal EQ
+//                              (VR5/6/7) when --channel normal is set.
 //
 // Mode 2 - full chain via preset file (--process-file input output --chain-config preset.json):
 //   Loads a preset JSON and runs the complete OpenRiffBoxProcessor chain.

@@ -38,6 +38,110 @@ static inline float masterWiperFraction(float knob)
 }
 
 //==============================================================================
+// Normal-channel front end helpers
+//==============================================================================
+// Bilinear-transforms a 3rd-order s-domain transfer function (ascending
+// s^0..s^3, DEN normalized to 1) into ToneStackFilter z-domain coefficients.
+// Same (z+1)^3 binomial expansion as updateBrightNetworkCoeffs/
+// updateToneStackCoeffs, factored out here (unlike those) because the ladder
+// ships in the release build and must not live behind ORB_OFFLINE_TOOLS.
+static void bilinearTransform3(const double num[4], const double den[4], double fs,
+                                float outB[4], float outA[3])
+{
+    const double K = 2.0 * fs, K2 = K * K, K3 = K2 * K;
+    static constexpr double T[4][4] = {
+        { 1.0,  3.0,  3.0,  1.0 },
+        { 1.0,  1.0, -1.0, -1.0 },
+        { 1.0, -1.0, -1.0,  1.0 },
+        { 1.0, -3.0,  3.0, -1.0 },
+    };
+    const double n[4] = { num[0], num[1] * K, num[2] * K2, num[3] * K3 };
+    const double d[4] = { den[0], den[1] * K, den[2] * K2, den[3] * K3 };
+    double bz[4] = {}, az[4] = {};
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+        {
+            bz[j] += n[i] * T[i][j];
+            az[j] += d[i] * T[i][j];
+        }
+    const double norm = 1.0 / az[0];
+    for (int j = 0; j < 4; ++j)
+        outB[j] = static_cast<float>(bz[j] * norm);
+    for (int j = 1; j < 4; ++j)
+        outA[j - 1] = static_cast<float>(az[j] * norm);
+}
+
+// VR1 LEVEL + C13 bright cap: H(s) = g*(1+s/wz)/(1+s/wp). Table is the
+// probe-validated fit (engine_spec.md sec 3 / fits.txt sec 1-2); g spans the
+// whole knob range, the shelf (fz/fp) only the region below w=0.8 - above
+// that the fitted zero/pole degenerates and the spec calls for flat (g only).
+static void computeLevelShelfCoeffs(float levelKnob, double oversampledRate,
+                                     float& b0, float& b1, float& a0)
+{
+    struct GPoint { float w, gDb; };
+    static constexpr GPoint kG[] = {
+        { 0.020f, -32.44f }, { 0.050f, -24.67f }, { 0.100f, -18.95f },
+        { 0.200f, -13.47f }, { 0.350f,  -9.24f }, { 0.500f,  -6.53f },
+        { 0.650f,  -4.38f }, { 0.800f,  -2.45f }, { 0.900f,  -1.21f },
+        { 0.999f,   0.00f },
+    };
+    struct ShelfPoint { float w, fz, fp; };
+    static constexpr ShelfPoint kShelf[] = {
+        { 0.020f, 1626.0f, 57185.0f }, { 0.050f, 1680.0f, 24891.0f },
+        { 0.100f, 1778.0f, 13598.0f }, { 0.200f, 2011.0f,  7973.0f },
+        { 0.350f, 2499.0f,  5841.0f }, { 0.500f, 3303.0f,  5464.0f },
+        { 0.650f, 4943.0f,  6246.0f },
+    };
+    constexpr int kNumG = 10, kNumShelf = 7;
+
+    const float w = juce::jlimit(0.0f, 1.0f, masterWiperFraction(levelKnob));
+
+    float gDb;
+    if (w <= kG[0].w)              gDb = kG[0].gDb;
+    else if (w >= kG[kNumG - 1].w) gDb = kG[kNumG - 1].gDb;
+    else
+    {
+        int i = 0;
+        while (w > kG[i + 1].w) ++i;
+        const float t = (w - kG[i].w) / (kG[i + 1].w - kG[i].w);
+        gDb = kG[i].gDb + t * (kG[i + 1].gDb - kG[i].gDb);
+    }
+    const float g = juce::Decibels::decibelsToGain(gDb);
+
+    if (w >= 0.8f)
+    {
+        b0 = g; b1 = 0.0f; a0 = 0.0f;
+        return;
+    }
+
+    float fz, fp;
+    if (w <= kShelf[0].w)
+    {
+        fz = kShelf[0].fz; fp = kShelf[0].fp;
+    }
+    else if (w >= kShelf[kNumShelf - 1].w)
+    {
+        fz = kShelf[kNumShelf - 1].fz; fp = kShelf[kNumShelf - 1].fp;
+    }
+    else
+    {
+        int i = 0;
+        while (w > kShelf[i + 1].w) ++i;
+        const float t = (w - kShelf[i].w) / (kShelf[i + 1].w - kShelf[i].w);
+        fz = std::exp(std::log(kShelf[i].fz) + t * (std::log(kShelf[i + 1].fz) - std::log(kShelf[i].fz)));
+        fp = std::exp(std::log(kShelf[i].fp) + t * (std::log(kShelf[i + 1].fp) - std::log(kShelf[i].fp)));
+    }
+
+    const float wz = juce::MathConstants<float>::twoPi * fz;
+    const float wp = juce::MathConstants<float>::twoPi * fp;
+    const float K  = 2.0f * static_cast<float>(oversampledRate);
+
+    b0 = g * (wp / wz) * (K + wz) / (K + wp);
+    b1 = g * (wp / wz) * (wz - K) / (K + wp);
+    a0 = (wp - K) / (K + wp);
+}
+
+//==============================================================================
 // Cabinet names
 //==============================================================================
 static const char* cabinetNamesPlatinum[AmpSimPlatinum::kNumCabinets] = {
@@ -285,6 +389,8 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
 
     v1aMillerCoeff = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi
                                       * 1620.0f / static_cast<float>(oversampledRate));
+    v1aMillerCoeffNormal = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi
+                                            * 3973.0f / static_cast<float>(oversampledRate));
     v1aMillerLpfL = 0.0f;
     v1aMillerLpfR = 0.0f;
 
@@ -297,6 +403,52 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
                                       * 4760.0f / static_cast<float>(oversampledRate));
     v2bMillerLpfL = 0.0f;
     v2bMillerLpfR = 0.0f;
+
+    //------------------------------------------------------------------------
+    // Normal-channel front end: voicing ladder (fixed per CLEAN/BOOST) + the
+    // VR1/C13 shelf's filter state. Shelf coefficients are knob-tracked and
+    // get recomputed every block in process() (see computeLevelShelfCoeffs).
+    //------------------------------------------------------------------------
+    {
+        static constexpr double cleanNumS[4] = { 1.576476593e-01, 8.612922216e-05, 3.010751844e-08, 0.0 };
+        static constexpr double cleanDenS[4] = { 1.000000000e+00, 3.844842180e-03, 1.472275054e-07, 2.974550910e-13 };
+        static constexpr double boostNumS[4] = { 4.921718094e-01, 2.688931463e-04, 9.399487372e-08, 0.0 };
+        static constexpr double boostDenS[4] = { 1.000000000e+00, 4.286047528e-03, 2.184333782e-07, 9.286469018e-13 };
+
+        float cleanB[4], cleanA[3], boostB[4], boostA[3];
+        bilinearTransform3(cleanNumS, cleanDenS, oversampledRate, cleanB, cleanA);
+        bilinearTransform3(boostNumS, boostDenS, oversampledRate, boostB, boostA);
+
+        std::copy(std::begin(cleanB), std::end(cleanB), ladderCleanL.b);
+        std::copy(std::begin(cleanA), std::end(cleanA), ladderCleanL.a);
+        std::copy(std::begin(cleanB), std::end(cleanB), ladderCleanR.b);
+        std::copy(std::begin(cleanA), std::end(cleanA), ladderCleanR.a);
+        ladderCleanL.reset(); ladderCleanR.reset();
+
+        std::copy(std::begin(boostB), std::end(boostB), ladderBoostL.b);
+        std::copy(std::begin(boostA), std::end(boostA), ladderBoostL.a);
+        std::copy(std::begin(boostB), std::end(boostB), ladderBoostR.b);
+        std::copy(std::begin(boostA), std::end(boostA), ladderBoostR.a);
+        ladderBoostL.reset(); ladderBoostR.reset();
+    }
+    vr1c13L.reset(); vr1c13R.reset();
+
+    normalLevelSmoothed.reset(sampleRate, 0.01);
+    normalLevelSmoothed.setCurrentAndTargetValue(normalLevelParam);
+
+    // Seed change-detection from current state so the first process() call
+    // after prepare() never sees a spurious channel/boost/jack "change" -
+    // that would fire the mute gap on a fresh engine (breaks the OD null).
+    lastChannel  = channelParam.load(std::memory_order_acquire);
+    lastBoost    = boostParam.load(std::memory_order_acquire);
+    lastInputLow = inputLowParam.load(std::memory_order_acquire);
+    lastNormalBassParam   = -1.0f;
+    lastNormalMidParam    = -1.0f;
+    lastNormalTrebleParam = -1.0f;
+
+    muteGapRampSamples = juce::jmax(1, static_cast<int>(0.008 * oversampledRate));
+    muteGapRemainingL  = 0;
+    muteGapRemainingR  = 0;
 
     coupCapAL.reset(); coupCapAR.reset();
     coupCapBL.reset(); coupCapBR.reset();
@@ -438,6 +590,10 @@ void AmpSimPlatinum::reset()
     c59DiffStateL = 0.0f; c59DiffStateR = 0.0f;
 #endif
     toneStackL.reset();  toneStackR.reset();
+    ladderCleanL.reset(); ladderCleanR.reset();
+    ladderBoostL.reset(); ladderBoostR.reset();
+    vr1c13L.reset();      vr1c13R.reset();
+    muteGapRemainingL = 0; muteGapRemainingR = 0;
     xfmrHpfL.reset();    xfmrHpfR.reset();
 
     // V4 LTP state
@@ -501,24 +657,39 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
     const float currentSpeakerDrive = speakerDriveParam;
     const int   currentGainMode    = gainModeParam.load(std::memory_order_acquire);
 
+    const int   channel      = channelParam.load(std::memory_order_acquire);
+    const bool  boost        = boostParam.load(std::memory_order_acquire);
+    const bool  inputLow     = inputLowParam.load(std::memory_order_acquire);
+    const float currentNormalLevel = normalLevelParam;
+
     const bool gainChanged    = (currentGain != lastGainParam);
-    const bool toneChanged    = (bassParam  != lastBassParam  ||
-                                  midParam   != lastMidParam   ||
-                                  trebleParam != lastTrebleParam);
+    const bool toneChanged    = (channel == 1)
+        ? (normalBassParam != lastNormalBassParam ||
+           normalMidParam  != lastNormalMidParam  ||
+           normalTrebleParam != lastNormalTrebleParam)
+        : (bassParam  != lastBassParam  ||
+           midParam   != lastMidParam   ||
+           trebleParam != lastTrebleParam);
     const bool micChanged     = (micPositionParam != lastMicPositionParam);
     const bool gainModeChanged = (currentGainMode != lastGainMode);
+    const bool channelChanged = (channel  != lastChannel);
+    const bool boostChanged   = (boost    != lastBoost);
+    const bool jackChanged    = (inputLow != lastInputLow);
 
     if (gainChanged)
     {
         updateGainFilter();
         lastGainParam = currentGain;
     }
-    if (toneChanged)
+    if (toneChanged || channelChanged)
     {
         updateToneStackCoeffs();
-        lastBassParam   = bassParam;
-        lastMidParam    = midParam;
-        lastTrebleParam = trebleParam;
+        lastBassParam         = bassParam;
+        lastMidParam          = midParam;
+        lastTrebleParam       = trebleParam;
+        lastNormalBassParam   = normalBassParam;
+        lastNormalMidParam    = normalMidParam;
+        lastNormalTrebleParam = normalTrebleParam;
     }
     if (micChanged)
     {
@@ -530,9 +701,29 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
         applyGainMode();
         lastGainMode = currentGainMode;
     }
+    if (channelChanged || boostChanged || jackChanged)
+    {
+        // Channel/boost/jack switch click: mute rather than crossfade (see
+        // ShelfFilter/ladder comments, engine_spec.md sec 7). Stale filter
+        // state on the newly-(in)active channel is fine - the gap covers it.
+        // A retrigger mid-gap must never raise the envelope back toward 1.0
+        // (audible blip) - only idle (0) restarts the full down-then-up run;
+        // already past the midpoint just snaps to fully muted and re-opens.
+        int restart = muteGapRemainingL;   // L/R always track together
+        if (restart == 0)
+            restart = 2 * muteGapRampSamples;
+        else if (restart < muteGapRampSamples)
+            restart = muteGapRampSamples;
+        muteGapRemainingL = restart;
+        muteGapRemainingR = restart;
+    }
+    lastChannel  = channel;
+    lastBoost    = boost;
+    lastInputLow = inputLow;
 
     ovLevelSmoothed.setTargetValue(currentOvLevel);
     masterSmoothed.setTargetValue(currentMaster);
+    normalLevelSmoothed.setTargetValue(currentNormalLevel);
 
     updateCabinet();
 
@@ -624,9 +815,31 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             ovLevelAtten = R_below_loaded / (R45 + R154 + R_above + R_below_loaded);
         }
 
+        // Normal front end: input corner, voicing ladder (fixed, chosen by
+        // boost) and the VR1/C13 shelf (knob-tracked - recompute every block,
+        // control rate). Referenced unconditionally; only touched per-sample
+        // when channel==1, so this costs OD nothing beyond the reference binds.
+        const float v1aMillerCoeffActive = (channel == 1) ? v1aMillerCoeffNormal : v1aMillerCoeff;
+        auto& ladder = boost ? ((ch == 0) ? ladderBoostL : ladderBoostR)
+                             : ((ch == 0) ? ladderCleanL : ladderCleanR);
+        auto& shelf  = (ch == 0) ? vr1c13L : vr1c13R;
+        if (channel == 1)
+            computeLevelShelfCoeffs(normalLevelSmoothed.getCurrentValue(), oversampledRate,
+                                     shelf.b0, shelf.b1, shelf.a0);
+
+        const float stage11Atten = (channel == 1) ? 0.0877f : ovLevelAtten;
+
+        auto& muteGapRemaining = (ch == 0) ? muteGapRemainingL : muteGapRemainingR;
+
         for (int i = 0; i < osNumSamples; ++i)
         {
             float s = samples[i];
+
+            //------------------------------------------------------------------
+            // Stage 0: LOW/HIGH input pad (both channels, before V1A)
+            //------------------------------------------------------------------
+            if (inputLow)
+                s *= 0.4993f;
 
             //------------------------------------------------------------------
             // Thermal noise injection at V1A input
@@ -645,7 +858,7 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             //------------------------------------------------------------------
             {
                 auto& millerState = (ch == 0) ? v1aMillerLpfL : v1aMillerLpfR;
-                millerState += v1aMillerCoeff * (s - millerState);
+                millerState += v1aMillerCoeffActive * (s - millerState);
                 s = millerState;
             }
             s = v1a.processSample(s);
@@ -658,42 +871,55 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             //------------------------------------------------------------------
             s = coupA.processSample(s, coupCapR_34Hz);
 
-            //------------------------------------------------------------------
-            // Stage 4: GAIN network + GAIN pot
-            //------------------------------------------------------------------
-#if ORB_OFFLINE_TOOLS
-            if (diag.brightFix)
+            if (channel == 0)
             {
-                auto& brightNet = (ch == 0) ? brightNetL : brightNetR;
-                s = brightNet.processSample(s);
+                //--------------------------------------------------------------
+                // Stage 4: GAIN network + GAIN pot
+                //--------------------------------------------------------------
+#if ORB_OFFLINE_TOOLS
+                if (diag.brightFix)
+                {
+                    auto& brightNet = (ch == 0) ? brightNetL : brightNetR;
+                    s = brightNet.processSample(s);
+                }
+                else
+#endif
+                {
+                    s = gainFilt.processSample(s);
+                    s *= 0.242f * gainParam;
+                }
+
+                //--------------------------------------------------------------
+                // Stage 5: V1B triode
+                //--------------------------------------------------------------
+                {
+                    constexpr float gc = 3.0f;
+                    if (s > gc) s = gc + std::tanh((s - gc) * 0.3f) * 0.5f;
+                }
+                s = v1b.processSample(s);
+
+                // Tap 2: after V1B (voltage domain)
+                if (stageLimit == 2) { samples[i] = s * v3aNorm; continue; }
+
+                //--------------------------------------------------------------
+                // Stage 6: Coupling cap B + OD network C25 shunt pole
+                //--------------------------------------------------------------
+                s = coupB.processSample(s, coupCapR_34Hz);
+                {
+                    auto& odC25 = (ch == 0) ? odC25LpfL : odC25LpfR;
+                    odC25 += odC25Coeff * (s - odC25);
+                    s = odC25;
+                }
             }
             else
-#endif
             {
-                s = gainFilt.processSample(s);
-                s *= 0.242f * gainParam;
-            }
-
-            //------------------------------------------------------------------
-            // Stage 5: V1B triode
-            //------------------------------------------------------------------
-            {
-                constexpr float gc = 3.0f;
-                if (s > gc) s = gc + std::tanh((s - gc) * 0.3f) * 0.5f;
-            }
-            s = v1b.processSample(s);
-
-            // Tap 2: after V1B (voltage domain)
-            if (stageLimit == 2) { samples[i] = s * v3aNorm; continue; }
-
-            //------------------------------------------------------------------
-            // Stage 6: Coupling cap B + OD network C25 shunt pole
-            //------------------------------------------------------------------
-            s = coupB.processSample(s, coupCapR_34Hz);
-            {
-                auto& odC25 = (ch == 0) ? odC25LpfL : odC25LpfR;
-                odC25 += odC25Coeff * (s - odC25);
-                s = odC25;
+                //--------------------------------------------------------------
+                // Stages 4-6 (Normal): voicing ladder -> VR1 LEVEL + C13 shelf.
+                // V1B is dropped; no coupling cap (R21 loss folded into the
+                // ladder's DC gain, ladder stays DC-referenced through coupA).
+                //--------------------------------------------------------------
+                s = ladder.processSample(s);
+                s = shelf.processSample(s);
             }
 
             //------------------------------------------------------------------
@@ -737,9 +963,10 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             s = coupD.processSample(s, coupCapR_15Hz);
 
             //------------------------------------------------------------------
-            // Stage 11: OV Level attenuator
+            // Stage 11: OV Level attenuator (Normal: fixed 0.0877, OV Level
+            // pot is bypassed by RL5 - see engine_spec.md sec 4)
             //------------------------------------------------------------------
-            s *= ovLevelAtten;
+            s *= stage11Atten;
 
             //------------------------------------------------------------------
             // Stage 12: V3A triode
@@ -1116,12 +1343,27 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             //------------------------------------------------------------------
             s = dcBlock.processSample(s, dcBlockerR_coeff);
 
+            //------------------------------------------------------------------
+            // Channel/boost/jack switch mute gap (triangular, idle = 1.0 exact)
+            //------------------------------------------------------------------
+            float muteGain = 1.0f;
+            if (muteGapRemaining > 0)
+            {
+                const int r = muteGapRampSamples;
+                muteGain = (muteGapRemaining > r)
+                    ? static_cast<float>(muteGapRemaining - r) / static_cast<float>(r)
+                    : static_cast<float>(r - muteGapRemaining) / static_cast<float>(r);
+                --muteGapRemaining;
+            }
+            s *= muteGain;
+
             samples[i] = s;
         }
     }
 
     ovLevelSmoothed.skip(numSamples);
     masterSmoothed.skip(numSamples);
+    normalLevelSmoothed.skip(numSamples);
 
     //------------------------------------------------------------------------
     // Downsample
@@ -1174,6 +1416,14 @@ void AmpSimPlatinum::resetToDefaults()
     setCabinetType(0);
     setMicPosition(0.5f);
     setCabTrim(0.0f);
+
+    setChannel(0);
+    setBoost(false);
+    setInputLow(false);
+    setNormalBass(0.5f);
+    setNormalMid(0.5f);
+    setNormalTreble(0.5f);
+    setNormalLevel(0.5f);
 }
 
 //==============================================================================
@@ -1265,6 +1515,42 @@ void AmpSimPlatinum::setCabTrim(float dB)
 {
     cabTrimDb = juce::jlimit(-12.0f, 12.0f, dB);
     updateCabGainTarget();
+}
+
+void AmpSimPlatinum::setChannel(int value)
+{
+    channelParam.store(juce::jlimit(0, 1, value), std::memory_order_release);
+}
+
+void AmpSimPlatinum::setBoost(bool value)
+{
+    boostParam.store(value, std::memory_order_release);
+}
+
+void AmpSimPlatinum::setInputLow(bool value)
+{
+    inputLowParam.store(value, std::memory_order_release);
+}
+
+void AmpSimPlatinum::setNormalBass(float value)
+{
+    normalBassParam = juce::jlimit(0.0f, 1.0f, value);
+}
+
+void AmpSimPlatinum::setNormalMid(float value)
+{
+    normalMidParam = juce::jlimit(0.0f, 1.0f, value);
+}
+
+void AmpSimPlatinum::setNormalTreble(float value)
+{
+    normalTrebleParam = juce::jlimit(0.0f, 1.0f, value);
+}
+
+void AmpSimPlatinum::setNormalLevel(float value)
+{
+    normalLevelParam = juce::jlimit(0.0f, 1.0f, value);
+    normalLevelSmoothed.setTargetValue(normalLevelParam);
 }
 
 //==============================================================================
@@ -1383,6 +1669,13 @@ void AmpSimPlatinum::updateBrightNetworkCoeffs()
 //==============================================================================
 void AmpSimPlatinum::updateToneStackCoeffs()
 {
+    // Coefficient math is shared and unchanged; only the source knobs differ
+    // per active channel (VR8/9/10 OD, VR5/6/7 Normal - engine_spec.md sec 5).
+    const bool  isNormal    = (channelParam.load(std::memory_order_acquire) == 1);
+    const float activeTreble = isNormal ? normalTrebleParam : trebleParam;
+    const float activeMid    = isNormal ? normalMidParam    : midParam;
+    const float activeBass   = isNormal ? normalBassParam   : bassParam;
+
     const double RIN = 1300.0;
     const double R1  = 33000.0;
     const double RT  = 200000.0;
@@ -1393,9 +1686,9 @@ void AmpSimPlatinum::updateToneStackCoeffs()
     const double C2  = 22e-9;
     const double C3  = 22e-9;
 
-    double rotTreble = trebleParam * 10.0;
-    double rotMid    = midParam    * 10.0;
-    double rotBass   = bassParam   * 10.0;
+    double rotTreble = activeTreble * 10.0;
+    double rotMid    = activeMid    * 10.0;
+    double rotBass   = activeBass   * 10.0;
 
     double rotTrebleTapered = rotTreble;
     double rotMidTapered    = rotMid;
