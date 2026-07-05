@@ -46,7 +46,14 @@
 //                               GAIN1 network, default 0), brightcin (V1B
 //                               Miller capacitance in pF, default 110),
 //                               c59 (1 = LTP plate-to-plate 47p, 113.4 kHz
-//                               differential corner, default 0).
+//                               differential corner, default 0), v4tail
+//                               (1 = dynamic LTP tail, default; 0 = frozen
+//                               pre-fix tail for A/B). Dynamic-tail solver
+//                               diagnostics: v4outers (NR budget, default 12),
+//                               v4rides (0 = freeze grid bias rides), v4nfb
+//                               (NFB scale into grid A), v4dump (1-7: replace
+//                               output with internal LTP signals x0.1, see
+//                               AmpSimPlatinum.h Diag).
 //
 // Supports FLAC and WAV input/output (detected by file extension).
 // Output format: 24-bit FLAC or 32-bit float WAV (raw renders can exceed

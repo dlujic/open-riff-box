@@ -139,9 +139,14 @@ private:
 
     ToneStackFilter toneStackL, toneStackR;
 
-    float v4_cathodeL = 0.0f, v4_cathodeR = 0.0f;  // Shared cathode voltage
     float v4a_IpPrevL = 0.0f, v4a_IpPrevR = 0.0f;  // V4A NR initial guess
     float v4b_IpPrevL = 0.0f, v4b_IpPrevR = 0.0f;  // V4B NR initial guess
+
+    // Tail-node LF ride reaching the grid bias refs (deviation volts from
+    // quiescent, so the sub-10Hz one-poles stay above float LSB at os rates)
+    float v4aRideL = 0.0f, v4aRideR = 0.0f;        // grid A: R97/C63, 1.6 Hz
+    float v4bRideL = 0.0f, v4bRideR = 0.0f;        // grid B: R92||R91/C58, 8 Hz
+    float v4RideCoeffA = 0.0f, v4RideCoeffB = 0.0f;
 
     float v4_Vk_q     = 0.0f;
     float v4a_Ip_q    = 0.0f, v4b_Ip_q    = 0.0f;
@@ -207,6 +212,11 @@ private:
         bool  brightFix   = false;
         float brightCinPf = 110.0f;
         bool  c59         = false;
+        bool  v4tail      = true;   // dynamic LTP tail; 0 = frozen pre-fix arm
+        int   v4outers    = 12;     // dynamic-tail outer NR iterations
+        bool  v4rides     = true;   // grid bias ride LPFs
+        float v4nfb       = 1.0f;   // NFB scale into dynamic-arm grid A
+        int   v4dump      = 0;      // 1=tailDev 2=rideB 3=rideA 4=Vk-VkQ 5=c58Out 6=nfbHpf 7=F
     };
     Diag diag;
 

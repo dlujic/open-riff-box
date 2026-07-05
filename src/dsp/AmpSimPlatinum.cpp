@@ -332,6 +332,14 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
     coupCapR_339Hz = 1.0f - (2.0f * juce::MathConstants<float>::pi * 339.0f
                               / static_cast<float>(oversampledRate));
 
+    // Tail ride onto the LTP grid refs: R97*C63 (1M x 0.1uF) and (R92||R91)*C58
+    v4RideCoeffA = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * 1.6f
+                                    / static_cast<float>(oversampledRate));
+    v4RideCoeffB = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * 8.0f
+                                    / static_cast<float>(oversampledRate));
+    v4aRideL = 0.0f; v4aRideR = 0.0f;
+    v4bRideL = 0.0f; v4bRideR = 0.0f;
+
     coupCapC58L.reset(); coupCapC58R.reset();
     coupCapC61L.reset(); coupCapC61R.reset();
     coupCapC62L.reset(); coupCapC62R.reset();
@@ -417,9 +425,10 @@ void AmpSimPlatinum::reset()
     xfmrHpfL.reset();    xfmrHpfR.reset();
 
     // V4 LTP state
-    v4_cathodeL = v4_Vk_q;   v4_cathodeR = v4_Vk_q;
     v4a_IpPrevL = v4a_Ip_q;  v4a_IpPrevR = v4a_Ip_q;
     v4b_IpPrevL = v4b_Ip_q;  v4b_IpPrevR = v4b_Ip_q;
+    v4aRideL = 0.0f; v4aRideR = 0.0f;
+    v4bRideL = 0.0f; v4bRideR = 0.0f;
 
     // V5/V6 pentode stages
     v5L.reset(); v5R.reset();
@@ -546,16 +555,22 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
         auto& coupC61   = (ch == 0) ? coupCapC61L : coupCapC61R;
         auto& coupC62   = (ch == 0) ? coupCapC62L : coupCapC62R;
         auto& coupNfb   = (ch == 0) ? coupCapNfbL : coupCapNfbR;
-        auto& v4_cath   = (ch == 0) ? v4_cathodeL : v4_cathodeR;
         auto& v4a_IpPr  = (ch == 0) ? v4a_IpPrevL : v4a_IpPrevR;
         auto& v4b_IpPr  = (ch == 0) ? v4b_IpPrevL : v4b_IpPrevR;
+        auto& v4aRide   = (ch == 0) ? v4aRideL : v4aRideR;
+        auto& v4bRide   = (ch == 0) ? v4bRideL : v4bRideR;
         auto& v5        = (ch == 0) ? v5L : v5R;
         auto& v6        = (ch == 0) ? v6L : v6R;
         auto& leakLpf   = (ch == 0) ? leakageLpfStateL : leakageLpfStateR;
         auto& prevSpkr  = (ch == 0) ? prevSpeakerOutL : prevSpeakerOutR;
         const float v3aNorm = (ch == 0) ? v3aNormL : v3aNormR;
 #if ORB_OFFLINE_TOOLS
-        const bool c59Enabled = diag.c59;
+        const bool  c59Enabled    = diag.c59;
+        const bool  v4tailEnabled = diag.v4tail;
+        const int   v4OuterIters  = diag.v4outers;
+        const bool  v4RidesOn     = diag.v4rides;
+        const float v4NfbScale    = diag.v4nfb;
+        const int   v4DumpMode    = diag.v4dump;
 #endif
 
         const float master    = masterSmoothed.getCurrentValue();
@@ -742,6 +757,9 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             //------------------------------------------------------------------
             s *= master;
 
+#if ORB_OFFLINE_TOOLS
+            float v4Dbg = 0.0f;
+#endif
             //------------------------------------------------------------------
             // Stage 18a: C58 coupling cap
             //------------------------------------------------------------------
@@ -768,78 +786,233 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
                 constexpr float MU_12AT7  = 63.19f;
                 constexpr float KS_12AT7  = 6.717e-6f;
 
-                float v4a_grid = v4a_Vg_q + nfbHpf;
-                float v4b_grid = v4b_Vg_q + c58Out;
-
-                constexpr float RpR93_A = RP_V4A + R93_VAL;
-                constexpr float RpR93_B = RP_V4B + R93_VAL;
                 float Ip_A = v4a_IpPr;
                 float Ip_B = v4b_IpPr;
 
-                for (int outer = 0; outer < 2; ++outer)
+#if ORB_OFFLINE_TOOLS
+                if (!v4tailEnabled)
                 {
-                    // --- V4A NR (Rp=100K, uses current Ip_B) ---
-                    {
-                        const float IpMax_A = std::max(0.0f,
-                            (BPLUS_J4 - Ip_B * R93_VAL - v4_Vtail_q) / RpR93_A);
-                        for (int nr = 0; nr < 4; ++nr)
-                        {
-                            float Vk  = (Ip_A + Ip_B) * R93_VAL + v4_Vtail_q;
-                            float Vgk = v4a_grid - Vk;
-                            float Vpk = BPLUS_J4 - Ip_A * RP_V4A - Vk;
-                            float ca  = Vpk + MU_12AT7 * Vgk;
-                            if (ca <= 0.0f) { Ip_A = 0.0f; break; }
-                            float re = 1.0f, dre = 0.0f;
-                            if (Vpk < 5.0f) {
-                                if (Vpk <= 0.0f) { Ip_A = 0.0f; break; }
-                                float t = Vpk * 0.2f;
-                                re = t * t * (3.0f - 2.0f * t);
-                                dre = 1.2f * t * (1.0f - t);
-                            }
-                            float ca_sqrt  = std::sqrt(ca);
-                            float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
-                            float residual = Ip_A - Ip_model;
-                            if (std::abs(residual) < 1e-10f) break;
-                            float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
-                            float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
-                            float jac = 1.0f + R93_VAL * dIp_dVgk + RpR93_A * dIp_dVpk;
-                            if (std::abs(jac) < 1e-12f) break;
-                            Ip_A -= residual / jac;
-                            Ip_A = std::clamp(Ip_A, 0.0f, IpMax_A);
-                        }
-                    }
+                    // Frozen-tail reference arm (pre-fix behavior) for A/B renders.
+                    float v4a_grid = v4a_Vg_q + nfbHpf;
+                    float v4b_grid = v4b_Vg_q + c58Out;
 
-                    // --- V4B NR (Rp=82K, uses current Ip_A) ---
+                    constexpr float RpR93_A = RP_V4A + R93_VAL;
+                    constexpr float RpR93_B = RP_V4B + R93_VAL;
+
+                    for (int outer = 0; outer < 2; ++outer)
                     {
-                        const float IpMax_B = std::max(0.0f,
-                            (BPLUS_J4 - Ip_A * R93_VAL - v4_Vtail_q) / RpR93_B);
-                        for (int nr = 0; nr < 4; ++nr)
+                        // --- V4A NR (Rp=100K, uses current Ip_B) ---
                         {
-                            float Vk  = (Ip_A + Ip_B) * R93_VAL + v4_Vtail_q;
-                            float Vgk = v4b_grid - Vk;
-                            float Vpk = BPLUS_J4 - Ip_B * RP_V4B - Vk;
-                            float ca  = Vpk + MU_12AT7 * Vgk;
-                            if (ca <= 0.0f) { Ip_B = 0.0f; break; }
-                            float re = 1.0f, dre = 0.0f;
-                            if (Vpk < 5.0f) {
-                                if (Vpk <= 0.0f) { Ip_B = 0.0f; break; }
-                                float t = Vpk * 0.2f;
-                                re = t * t * (3.0f - 2.0f * t);
-                                dre = 1.2f * t * (1.0f - t);
+                            const float IpMax_A = std::max(0.0f,
+                                (BPLUS_J4 - Ip_B * R93_VAL - v4_Vtail_q) / RpR93_A);
+                            for (int nr = 0; nr < 4; ++nr)
+                            {
+                                float Vk  = (Ip_A + Ip_B) * R93_VAL + v4_Vtail_q;
+                                float Vgk = v4a_grid - Vk;
+                                float Vpk = BPLUS_J4 - Ip_A * RP_V4A - Vk;
+                                float ca  = Vpk + MU_12AT7 * Vgk;
+                                if (ca <= 0.0f) { Ip_A = 0.0f; break; }
+                                float re = 1.0f, dre = 0.0f;
+                                if (Vpk < 5.0f) {
+                                    if (Vpk <= 0.0f) { Ip_A = 0.0f; break; }
+                                    float t = Vpk * 0.2f;
+                                    re = t * t * (3.0f - 2.0f * t);
+                                    dre = 1.2f * t * (1.0f - t);
+                                }
+                                float ca_sqrt  = std::sqrt(ca);
+                                float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
+                                float residual = Ip_A - Ip_model;
+                                if (std::abs(residual) < 1e-10f) break;
+                                float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
+                                float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
+                                float jac = 1.0f + R93_VAL * dIp_dVgk + RpR93_A * dIp_dVpk;
+                                if (std::abs(jac) < 1e-12f) break;
+                                Ip_A -= residual / jac;
+                                Ip_A = std::clamp(Ip_A, 0.0f, IpMax_A);
                             }
-                            float ca_sqrt  = std::sqrt(ca);
-                            float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
-                            float residual = Ip_B - Ip_model;
-                            if (std::abs(residual) < 1e-10f) break;
-                            float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
-                            float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
-                            float jac = 1.0f + R93_VAL * dIp_dVgk + RpR93_B * dIp_dVpk;
-                            if (std::abs(jac) < 1e-12f) break;
-                            Ip_B -= residual / jac;
-                            Ip_B = std::clamp(Ip_B, 0.0f, IpMax_B);
+                        }
+
+                        // --- V4B NR (Rp=82K, uses current Ip_A) ---
+                        {
+                            const float IpMax_B = std::max(0.0f,
+                                (BPLUS_J4 - Ip_A * R93_VAL - v4_Vtail_q) / RpR93_B);
+                            for (int nr = 0; nr < 4; ++nr)
+                            {
+                                float Vk  = (Ip_A + Ip_B) * R93_VAL + v4_Vtail_q;
+                                float Vgk = v4b_grid - Vk;
+                                float Vpk = BPLUS_J4 - Ip_B * RP_V4B - Vk;
+                                float ca  = Vpk + MU_12AT7 * Vgk;
+                                if (ca <= 0.0f) { Ip_B = 0.0f; break; }
+                                float re = 1.0f, dre = 0.0f;
+                                if (Vpk < 5.0f) {
+                                    if (Vpk <= 0.0f) { Ip_B = 0.0f; break; }
+                                    float t = Vpk * 0.2f;
+                                    re = t * t * (3.0f - 2.0f * t);
+                                    dre = 1.2f * t * (1.0f - t);
+                                }
+                                float ca_sqrt  = std::sqrt(ca);
+                                float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
+                                float residual = Ip_B - Ip_model;
+                                if (std::abs(residual) < 1e-10f) break;
+                                float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
+                                float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
+                                float jac = 1.0f + R93_VAL * dIp_dVgk + RpR93_B * dIp_dVpk;
+                                if (std::abs(jac) < 1e-12f) break;
+                                Ip_B -= residual / jac;
+                                Ip_B = std::clamp(Ip_B, 0.0f, IpMax_B);
+                            }
                         }
                     }
                 }
+                else
+#endif
+                {
+                    // Dynamic tail: below R93 the real network runs R98 (10K) to the
+                    // NFB driver node JX1, whose effective impedance (4.6K) and the
+                    // NFB arrival there were regressed from MNA node traces
+                    // (tools/f2_tail_thevenin.py). Grid bias refs derive from the
+                    // tail (R97 -> grid A, R92/R91 divider -> grid B), and grid A
+                    // additionally rides JX1 through C63 - so V4A sees only R93+R98
+                    // of differential tail while V4B sees all of it. Solved as a
+                    // scalar Newton on Vk; each triode solves at fixed Vk (the old
+                    // alternating solve stalls at this coupling strength).
+                    constexpr float R_JX1    = 4600.0f;
+                    constexpr float R_TAIL   = R93_VAL + 10000.0f + R_JX1;
+                    constexpr float G_RIDE_A = R_JX1 / R_TAIL;
+
+                    // NFB stays on grid A only: the engine's nfbHpf is loop-shaping
+                    // calibration, not a faithful JX1 voltage - injecting it into
+                    // the tail adds a common-mode path that rings at ~2.2 kHz
+                    // through the asymmetric plate loads.
+#if ORB_OFFLINE_TOOLS
+                    const int   nOuter   = v4OuterIters;
+                    const float nfbGridA = nfbHpf * v4NfbScale;
+#else
+                    // 12: the V4B cutoff kink rejects Newton steps, so worst-case
+                    // samples bisect the full bracket; early break keeps the
+                    // steady state at 1-2 iterations
+                    constexpr int nOuter = 12;
+                    const float nfbGridA = nfbHpf;
+#endif
+                    const float iSumQ    = v4a_Ip_q + v4b_Ip_q;
+                    const float gridA0   = v4a_Vg_q + v4aRide + nfbGridA
+                                         - G_RIDE_A * v4_Vk_q;
+                    const float v4b_grid = v4b_Vg_q + (10.0f / 11.0f) * v4bRide + c58Out;
+
+                    float lo = v4_Vk_q - 8.0f, hi = v4_Vk_q + 8.0f;
+                    float Vk = juce::jlimit(lo, hi,
+                                            v4_Vk_q + R_TAIL * (Ip_A + Ip_B - iSumQ));
+#if ORB_OFFLINE_TOOLS
+                    float v4LastF = 0.0f;
+#endif
+                    for (int outer = 0; outer < nOuter; ++outer)
+                    {
+                        const float v4a_grid = gridA0 + G_RIDE_A * Vk;
+                        float dIpA_dVk = 0.0f, dIpB_dVk = 0.0f;
+
+                        // --- V4A at fixed Vk ---
+                        {
+                            const float IpMax = std::max(0.0f, (BPLUS_J4 - Vk) / RP_V4A);
+                            Ip_A = std::min(Ip_A, IpMax);
+                            // must converge from any start: the outer bisection can
+                            // move Vk by volts, and a half-solved Ip feeds F a wrong
+                            // sign, collapsing the bracket onto a false root
+                            for (int nr = 0; nr < 8; ++nr)
+                            {
+                                float Vgk = v4a_grid - Vk;
+                                float Vpk = BPLUS_J4 - Ip_A * RP_V4A - Vk;
+                                float ca  = Vpk + MU_12AT7 * Vgk;
+                                if (ca <= 0.0f) { Ip_A = 0.0f; dIpA_dVk = 0.0f; break; }
+                                float re = 1.0f, dre = 0.0f;
+                                if (Vpk < 5.0f) {
+                                    if (Vpk <= 0.0f) { Ip_A = 0.0f; dIpA_dVk = 0.0f; break; }
+                                    float t = Vpk * 0.2f;
+                                    re = t * t * (3.0f - 2.0f * t);
+                                    dre = 1.2f * t * (1.0f - t);
+                                }
+                                float ca_sqrt  = std::sqrt(ca);
+                                float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
+                                float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
+                                float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
+                                float jac = 1.0f + RP_V4A * dIp_dVpk;
+                                dIpA_dVk = -(dIp_dVgk * (1.0f - G_RIDE_A) + dIp_dVpk) / jac;
+                                float residual = Ip_A - Ip_model;
+                                if (std::abs(residual) < 1e-8f) break;
+                                Ip_A = std::clamp(Ip_A - residual / jac, 0.0f, IpMax);
+                            }
+                        }
+
+                        // --- V4B at fixed Vk ---
+                        {
+                            const float IpMax = std::max(0.0f, (BPLUS_J4 - Vk) / RP_V4B);
+                            Ip_B = std::min(Ip_B, IpMax);
+                            for (int nr = 0; nr < 8; ++nr)
+                            {
+                                float Vgk = v4b_grid - Vk;
+                                float Vpk = BPLUS_J4 - Ip_B * RP_V4B - Vk;
+                                float ca  = Vpk + MU_12AT7 * Vgk;
+                                if (ca <= 0.0f) { Ip_B = 0.0f; dIpB_dVk = 0.0f; break; }
+                                float re = 1.0f, dre = 0.0f;
+                                if (Vpk < 5.0f) {
+                                    if (Vpk <= 0.0f) { Ip_B = 0.0f; dIpB_dVk = 0.0f; break; }
+                                    float t = Vpk * 0.2f;
+                                    re = t * t * (3.0f - 2.0f * t);
+                                    dre = 1.2f * t * (1.0f - t);
+                                }
+                                float ca_sqrt  = std::sqrt(ca);
+                                float Ip_model = re * KS_12AT7 * ca * ca_sqrt;
+                                float dIp_dVgk = re * KS_12AT7 * 1.5f * MU_12AT7 * ca_sqrt;
+                                float dIp_dVpk = KS_12AT7 * ca_sqrt * (re * 1.5f + dre * ca);
+                                float jac = 1.0f + RP_V4B * dIp_dVpk;
+                                dIpB_dVk = -(dIp_dVgk + dIp_dVpk) / jac;
+                                float residual = Ip_B - Ip_model;
+                                if (std::abs(residual) < 1e-8f) break;
+                                Ip_B = std::clamp(Ip_B - residual / jac, 0.0f, IpMax);
+                            }
+                        }
+
+                        const float F = v4_Vk_q + R_TAIL * (Ip_A + Ip_B - iSumQ) - Vk;
+#if ORB_OFFLINE_TOOLS
+                        v4LastF = F;
+#endif
+                        if (std::abs(F) < 1e-4f) break;
+                        // Bisection-guarded Newton: F is monotone decreasing in Vk,
+                        // but raw Newton overshoots at the V4B cutoff corner (kinked
+                        // dF) and needles the cathode. Bracket instead - never leaves
+                        // [lo, hi], converges regardless of the kink.
+                        if (F > 0.0f) lo = Vk; else hi = Vk;
+                        const float dF = R_TAIL * (dIpA_dVk + dIpB_dVk) - 1.0f;
+                        const float next = Vk - F / dF;
+                        Vk = (next > lo && next < hi) ? next : 0.5f * (lo + hi);
+                    }
+
+                    const float dIsum = Ip_A + Ip_B - iSumQ;
+#if ORB_OFFLINE_TOOLS
+                    if (v4RidesOn)
+#endif
+                    {
+                        // Grid A already rides JX1 through the in-solve G_RIDE_A
+                        // term, so its LF ride is only the R98 drop - feeding it
+                        // the full tail deviation double-counts the JX1 part and
+                        // the 1.6 Hz pole integrates the excess into DC runaway.
+                        v4aRide += v4RideCoeffA * (10000.0f * dIsum - v4aRide);
+                        v4bRide += v4RideCoeffB * ((R_TAIL - R93_VAL) * dIsum - v4bRide);
+                    }
+#if ORB_OFFLINE_TOOLS
+                    switch (v4DumpMode)   // 0.1x so the writer's +/-1 clamp clears
+                    {
+                        case 1: v4Dbg = 0.1f * (R_TAIL - R93_VAL) * dIsum; break;
+                        case 2: v4Dbg = 0.1f * v4bRide; break;
+                        case 3: v4Dbg = 0.1f * v4aRide; break;
+                        case 4: v4Dbg = 0.1f * (Vk - v4_Vk_q); break;
+                        case 5: v4Dbg = 0.1f * c58Out; break;
+                        case 6: v4Dbg = 0.1f * nfbHpf; break;
+                        case 7: v4Dbg = 0.1f * v4LastF; break;
+                        default: break;
+                    }
+#endif
+                }
+
                 v4a_IpPr = Ip_A;
                 v4b_IpPr = Ip_B;
 
@@ -868,6 +1041,9 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
                 s = speakerOut;
             }
 
+#if ORB_OFFLINE_TOOLS
+            if (v4DumpMode != 0) { samples[i] = v4Dbg; continue; }
+#endif
             // Tap 8: after power amp (normalized domain)
             if (stageLimit == 8) { samples[i] = s; continue; }
 
@@ -1358,6 +1534,28 @@ bool AmpSimPlatinum::setDiagnostic(const juce::String& key, float value)
         return true;
     }
     if (key == "c59") { diag.c59 = value >= 0.5f; return true; }
+    if (key == "v4tail") { diag.v4tail = value >= 0.5f; return true; }
+    if (key == "v4outers")
+    {
+        const int n = static_cast<int>(value);
+        if (n < 1 || n > 32) return false;
+        diag.v4outers = n;
+        return true;
+    }
+    if (key == "v4rides") { diag.v4rides = value >= 0.5f; return true; }
+    if (key == "v4nfb")
+    {
+        if (value < 0.0f || value > 2.0f) return false;
+        diag.v4nfb = value;
+        return true;
+    }
+    if (key == "v4dump")
+    {
+        const int m = static_cast<int>(value);
+        if (m < 0 || m > 7) return false;
+        diag.v4dump = m;
+        return true;
+    }
     return false;
 }
 #endif

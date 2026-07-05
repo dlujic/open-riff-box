@@ -81,7 +81,9 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             1e-7, 1e-5 = pre-C2 stock), brightfix\n"
                   << "                             (1 = schematic GAIN1 network, default 0),\n"
                   << "                             brightcin (V1B Miller pF, default 110),\n"
-                  << "                             c59 (1 = LTP plate-to-plate 47p, default 0)\n"
+                  << "                             c59 (1 = LTP plate-to-plate 47p, default 0),\n"
+                  << "                             v4tail (dynamic LTP tail, default 1;\n"
+                  << "                             0 = frozen pre-fix tail)\n"
                   << std::flush;
         return true;
     }
