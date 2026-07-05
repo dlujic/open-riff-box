@@ -35,6 +35,7 @@ juce_add_plugin(OpenRiffBox
 target_sources(OpenRiffBox
     PRIVATE
         src/Main.cpp
+        src/ExclusiveAudioMode.h
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/dsp/EffectChain.cpp

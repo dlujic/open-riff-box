@@ -14,6 +14,7 @@
 #if JucePlugin_Build_Standalone
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
+#include "ExclusiveAudioMode.h"
 #include "ui/Theme.h"
 //==============================================================================
 // Custom title bar button — larger and styled for amp aesthetic
@@ -237,6 +238,10 @@ public:
 
         auto* settings = portableSettings ? portableSettings.get()
                                           : appProperties.getUserSettings();
+
+        // The window constructor opens the saved audio device, so the saved
+        // setup has to be made safe before it exists.
+        ExclusiveAudioMode::sanitizeSavedSetup(*settings);
 
         mainWindow = std::make_unique<OpenRiffBoxWindow>(settings);
         mainWindow->setVisible(true);
