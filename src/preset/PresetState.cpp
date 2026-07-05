@@ -445,7 +445,7 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 plat->setBass(getDouble(v, "bass", 0.5));
                 plat->setMid(getDouble(v, "mid", 0.5));
                 plat->setTreble(getDouble(v, "treble", 0.5));
-                plat->setMaster(getDouble(v, "master", 0.3));
+                plat->setMaster(getDouble(v, "master", 0.64));
                 plat->setGainMode(getInt(v, "gainMode", 0));
                 plat->setCabinetType(getInt(v, "cabinetType", 0));
                 plat->setMicPosition(getDouble(v, "micPosition", 0.5));
@@ -464,7 +464,7 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 plat->setBass(0.5f);
                 plat->setMid(0.5f);
                 plat->setTreble(0.5f);
-                plat->setMaster(0.3f);
+                plat->setMaster(0.64f);
                 plat->setGainMode(0);
                 plat->setCabinetType(0);
                 plat->setMicPosition(0.5f);

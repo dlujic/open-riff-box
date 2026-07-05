@@ -1,11 +1,12 @@
 #include "Preset.h"
+#include "dsp/AmpSimPlatinum.h"
 
 juce::var Preset::toJson() const
 {
     auto* root = new juce::DynamicObject();
 
     root->setProperty("format", "OpenRiffBox");
-    root->setProperty("version", 1);
+    root->setProperty("version", 2);
     root->setProperty("name", name);
     root->setProperty("author", author);
     root->setProperty("date", date);
@@ -66,6 +67,23 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
     result.effects.clear();
     for (auto& prop : effectsObj->getProperties())
         result.effects[prop.name.toString()] = prop.value;
+
+    // v1 stored the Platinum master as a flat multiplier; v2 stores the knob
+    // position under the VR12 pot law. Remap so old presets keep their drive.
+    // Versionless JSON (hand-authored configs) is left untouched.
+    if (static_cast<int>(root->getProperty("version")) == 1)
+    {
+        auto it = result.effects.find("Amp Platinum");
+        if (it != result.effects.end())
+        {
+            if (auto* plat = it->second.getDynamicObject())
+            {
+                if (plat->hasProperty("master"))
+                    plat->setProperty("master", AmpSimPlatinum::remapLegacyMaster(
+                        static_cast<float>(static_cast<double>(plat->getProperty("master")))));
+            }
+        }
+    }
 
     // Parse chain order: absent or "default" = empty (default order)
     result.chainOrder.clear();

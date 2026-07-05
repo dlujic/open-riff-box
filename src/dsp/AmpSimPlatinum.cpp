@@ -24,6 +24,20 @@ static ORB_NOINLINE void applyC59Damper(float& diffState, float coeff,
 #endif
 
 //==============================================================================
+// VR12 master pot law
+//==============================================================================
+// Grid-side load on the C58 injection: R91 || R92 with the LTP tail
+// bootstrapping R92 at ~0.4x follow (MNA probe, tools/master_probe.py).
+static constexpr float kMasterRLGrid = 1.55e6f;
+
+// A1M taper as two linear segments: 10% wiper fraction at half rotation
+// (same law the tone stack uses for the bass pot).
+static inline float masterWiperFraction(float knob)
+{
+    return knob <= 0.5f ? 0.2f * knob : 1.8f * knob - 0.8f;
+}
+
+//==============================================================================
 // Cabinet names
 //==============================================================================
 static const char* cabinetNamesPlatinum[AmpSimPlatinum::kNumCabinets] = {
@@ -345,6 +359,8 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
     coupCapC62L.reset(); coupCapC62R.reset();
     coupCapNfbL.reset(); coupCapNfbR.reset();
 
+    v4bGridLpfL = 0.0f; v4bGridLpfR = 0.0f;
+
     sagAttackCoeff  = 1.0f - std::exp(-1.0f / (static_cast<float>(oversampledRate) * 0.020f));
     sagReleaseCoeff = 1.0f - std::exp(-1.0f / (static_cast<float>(oversampledRate) * 0.200f));
     sagEnvelopeL = 0.0f;
@@ -438,6 +454,8 @@ void AmpSimPlatinum::reset()
     coupCapC61L.reset(); coupCapC61R.reset();
     coupCapC62L.reset(); coupCapC62R.reset();
     coupCapNfbL.reset(); coupCapNfbR.reset();
+
+    v4bGridLpfL = 0.0f; v4bGridLpfR = 0.0f;
 
     leakageLpfStateL = 0.0f; leakageLpfStateR = 0.0f;
 
@@ -571,9 +589,26 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
         const bool  v4RidesOn     = diag.v4rides;
         const float v4NfbScale    = diag.v4nfb;
         const int   v4DumpMode    = diag.v4dump;
+        const bool  mvCircuitOn   = diag.mvCircuit;
 #endif
 
-        const float master    = masterSmoothed.getCurrentValue();
+        const float masterKnob = masterSmoothed.getCurrentValue();
+
+        // VR12 wiper -> C58 -> V4B grid: loaded divider plus knob-tracked
+        // corners. Cin 43p is the Miller sum at the grid (MNA probe fit,
+        // tools/master_probe.py).
+        float masterAtten, c58MasterCoeff, v4bGridLpfCoeff;
+        {
+            constexpr float C58 = 22e-9f;
+            constexpr float CIN = 43e-12f;
+            const float alpha = masterWiperFraction(masterKnob);
+            const float rs    = juce::jmax(1.0f, 1.0e6f * alpha * (1.0f - alpha));
+            const float osFs  = static_cast<float>(oversampledRate);
+            masterAtten     = alpha * kMasterRLGrid / (kMasterRLGrid + rs);
+            c58MasterCoeff  = 1.0f - 1.0f / (C58 * (rs + kMasterRLGrid) * osFs);
+            v4bGridLpfCoeff = 1.0f - std::exp(-(rs + kMasterRLGrid)
+                                              / (rs * kMasterRLGrid * CIN * osFs));
+        }
 
         const float ovLevelPot = ovLevelSmoothed.getCurrentValue();
         float ovLevelAtten;
@@ -753,20 +788,36 @@ void AmpSimPlatinum::process(juce::AudioBuffer<float>& buffer)
             }
 
             //------------------------------------------------------------------
-            // Stage 17: Master volume
+            // Stage 17: Master volume (VR12 loaded divider)
             //------------------------------------------------------------------
-            s *= master;
+#if ORB_OFFLINE_TOOLS
+            if (!mvCircuitOn)
+                s *= masterKnob;
+            else
+#endif
+                s *= masterAtten;
 
 #if ORB_OFFLINE_TOOLS
             float v4Dbg = 0.0f;
 #endif
             //------------------------------------------------------------------
-            // Stage 18a: C58 coupling cap
+            // Stage 18a: C58 coupling cap + V4B grid input pole
             //------------------------------------------------------------------
             {
                 constexpr float V_MASTER_SCALE = 1.5f;
                 float masterVolts = s * V_MASTER_SCALE;
-                float c58Out = coupC58.processSample(masterVolts, coupCapR_34Hz);
+                float c58Out;
+#if ORB_OFFLINE_TOOLS
+                if (!mvCircuitOn)
+                    c58Out = coupC58.processSample(masterVolts, coupCapR_34Hz);
+                else
+#endif
+                {
+                    c58Out = coupC58.processSample(masterVolts, c58MasterCoeff);
+                    auto& gridLpf = (ch == 0) ? v4bGridLpfL : v4bGridLpfR;
+                    gridLpf += v4bGridLpfCoeff * (c58Out - gridLpf);
+                    c58Out = gridLpf;
+                }
 
                 //--------------------------------------------------------------
                 // Stage 18b: NFB path (one-sample loop delay)
@@ -1117,7 +1168,7 @@ void AmpSimPlatinum::resetToDefaults()
     setBass(0.5f);
     setMid(0.5f);
     setTreble(0.5f);
-    setMaster(0.3f);
+    setMaster(0.64f);
     setSpeakerDrive(0.3f);
     setGainMode(0);
     setCabinetType(0);
@@ -1158,6 +1209,21 @@ void AmpSimPlatinum::setMaster(float value)
 {
     masterParam = juce::jlimit(0.0f, 1.0f, value);
     masterSmoothed.setTargetValue(masterParam);
+}
+
+float AmpSimPlatinum::remapLegacyMaster(float oldLinear)
+{
+    const float a = juce::jlimit(0.0f, 1.0f, oldLinear);
+    if (a < 1.0e-4f)
+        return 0.0f;
+
+    // Solve a = alpha*RL/(RL + Rpot*alpha*(1-alpha)) for alpha (positive
+    // root, RL and Rpot in Mohm), then invert the taper.
+    const float rl    = kMasterRLGrid * 1.0e-6f;
+    const float b     = rl - a;
+    const float alpha = (-b + std::sqrt(b * b + 4.0f * a * a * rl)) / (2.0f * a);
+    const float knob  = alpha <= 0.1f ? 5.0f * alpha : (alpha + 0.8f) / 1.8f;
+    return juce::jlimit(0.0f, 1.0f, knob);
 }
 
 void AmpSimPlatinum::setSpeakerDrive(float value)
@@ -1535,6 +1601,7 @@ bool AmpSimPlatinum::setDiagnostic(const juce::String& key, float value)
     }
     if (key == "c59") { diag.c59 = value >= 0.5f; return true; }
     if (key == "v4tail") { diag.v4tail = value >= 0.5f; return true; }
+    if (key == "mvcircuit") { diag.mvCircuit = value >= 0.5f; return true; }
     if (key == "v4outers")
     {
         const int n = static_cast<int>(value);

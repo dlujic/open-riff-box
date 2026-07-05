@@ -54,7 +54,8 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "  --cabinet <0-15>           Cabinet (0-13=named, 14=none, 15=custom)\n"
                   << "  --boost                    Enable preamp boost (Gold only)\n"
                   << "  --ov-level <0-1>           OV Level (Platinum, default: 0.7)\n"
-                  << "  --master <0-1>             Master volume (Platinum, default: 0.3)\n"
+                  << "  --master <0-1>             Master knob (Platinum, default: 0.64;\n"
+                  << "                             VR12 A-taper + loading in the engine)\n"
                   << "  --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum)\n"
                   << "  --stage-limit <1-9>        Tap after stage N (Platinum debug)\n"
                   << "\n  Gold internal overrides:\n"
@@ -83,7 +84,9 @@ bool runOfflineProcessor(const juce::StringArray& args)
                   << "                             brightcin (V1B Miller pF, default 110),\n"
                   << "                             c59 (1 = LTP plate-to-plate 47p, default 0),\n"
                   << "                             v4tail (dynamic LTP tail, default 1;\n"
-                  << "                             0 = frozen pre-fix tail)\n"
+                  << "                             0 = frozen pre-fix tail), mvcircuit\n"
+                  << "                             (VR12 A-taper + C58 network, default 1;\n"
+                  << "                             0 = legacy flat master)\n"
                   << std::flush;
         return true;
     }
@@ -439,7 +442,7 @@ bool runOfflineProcessor(const juce::StringArray& args)
 
     // Platinum-specific params
     float ovLevel      = parseParam("--ov-level",      0.7f);
-    float master       = parseParam("--master",        0.3f);
+    float master       = parseParam("--master",        0.64f);
     int   gainMode     = static_cast<int>(parseParam("--gain-mode", 0.0f));
 
     // Debug: stage limit for noise tracing (Platinum only)

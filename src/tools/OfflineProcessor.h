@@ -19,7 +19,8 @@
 //   --cabinet <0-15>           Cabinet index (0-13=named, 14=none, 15=custom)
 //   --boost                    Enable preamp boost (Gold only)
 //   --ov-level <0-1>           OV Level (Platinum only, default: 0.7)
-//   --master <0-1>             Master volume (Platinum only, default: 0.3)
+//   --master <0-1>             Master knob position (Platinum only, default: 0.64;
+//                              VR12 A-taper + loading applied inside the engine)
 //   --gain-mode <0-1>          0=GAIN1, 1=GAIN2 (Platinum only)
 //   --stage-limit <1-9>        Tap after stage N (Platinum debug)
 //
@@ -48,7 +49,9 @@
 //                               c59 (1 = LTP plate-to-plate 47p, 113.4 kHz
 //                               differential corner, default 0), v4tail
 //                               (1 = dynamic LTP tail, default; 0 = frozen
-//                               pre-fix tail for A/B). Dynamic-tail solver
+//                               pre-fix tail for A/B), mvcircuit (1 = VR12
+//                               A-taper + C58 network, default; 0 = legacy
+//                               flat master for A/B). Dynamic-tail solver
 //                               diagnostics: v4outers (NR budget, default 12),
 //                               v4rides (0 = freeze grid bias rides), v4nfb
 //                               (NFB scale into grid A), v4dump (1-7: replace

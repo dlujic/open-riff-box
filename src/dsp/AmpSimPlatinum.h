@@ -33,6 +33,10 @@ public:
     void setMicPosition(float value);   // 0-1
     void setCabTrim(float dB);          // -12 to +12
 
+    // Maps a pre-v2 preset master (flat multiplier) to the knob position that
+    // produces the same drive under the VR12 pot law. Used on preset load.
+    static float remapLegacyMaster(float oldLinear);
+
     float getGain()         const { return gainParam; }
     float getOvLevel()      const { return ovLevelParam; }
     float getBass()         const { return bassParam; }
@@ -54,7 +58,8 @@ public:
     //       noiselevel (V1A noise inject amplitude, 1e-5 = pre-C2 stock),
     //       brightfix (1 = schematic-derived GAIN1 network, default 0),
     //       brightcin (V1B Miller capacitance in pF for brightfix, default 110),
-    //       c59 (1 = LTP plate-to-plate 47p, default 0)
+    //       c59 (1 = LTP plate-to-plate 47p, default 0),
+    //       mvcircuit (VR12 A-taper + C58 network, default 1; 0 = legacy flat master)
     bool setDiagnostic(const juce::String& key, float value);
 #endif
 
@@ -100,6 +105,9 @@ private:
     float v1aMillerLpfL = 0.0f;
     float v1aMillerLpfR = 0.0f;
     float v1aMillerCoeff = 0.0f;
+
+    float v4bGridLpfL = 0.0f;   // V4B grid input pole (master Rs || grid load into Cin)
+    float v4bGridLpfR = 0.0f;
 
     float odC25LpfL = 0.0f;
     float odC25LpfR = 0.0f;
@@ -157,7 +165,7 @@ private:
     PentodeStage v5L, v5R, v6L, v6R;
     float speakerNormFactor = 0.0f;
 
-    CouplingCap coupCapC58L, coupCapC58R;   // Master -> V4B grid (C58, 22nF, 34Hz)
+    CouplingCap coupCapC58L, coupCapC58R;   // Master -> V4B grid (C58, 22nF, knob-tracked fc)
     CouplingCap coupCapC61L, coupCapC61R;   // V4A plate -> V5 supp (C61, 22nF, 34Hz)
     CouplingCap coupCapC62L, coupCapC62R;   // V4B plate -> V6 supp (C62, 22nF, 34Hz)
     CouplingCap coupCapNfbL, coupCapNfbR;   // NFB -> V4A grid (C63, 0.1uF, 339Hz)
@@ -194,7 +202,7 @@ private:
     float bassParam         = 0.5f;
     float midParam          = 0.5f;
     float trebleParam       = 0.5f;
-    float masterParam       = 0.3f;
+    float masterParam       = 0.64f;
     float speakerDriveParam = 0.3f;
     float micPositionParam  = 0.5f;
     std::atomic<int>  gainModeParam    { 0 };
@@ -217,6 +225,7 @@ private:
         bool  v4rides     = true;   // grid bias ride LPFs
         float v4nfb       = 1.0f;   // NFB scale into dynamic-arm grid A
         int   v4dump      = 0;      // 1=tailDev 2=rideB 3=rideA 4=Vk-VkQ 5=c58Out 6=nfbHpf 7=F
+        bool  mvCircuit   = true;   // VR12 A-taper + C58 network; 0 = legacy flat master arm
     };
     Diag diag;
 
