@@ -5,6 +5,7 @@
 #include "SliderLookAndFeel.h"
 #include "BypassButtonLookAndFeel.h"
 #include "ResetButtonLookAndFeel.h"
+#include "RockerSwitch.h"
 
 class AmpSimPlatinum;
 
@@ -59,13 +60,12 @@ private:
     juce::Slider masterSlider;
     juce::Label  masterLabel;
 
-    // GAIN1/GAIN2 toggle button
-    juce::TextButton gainModeButton;
-
-    // Channel / CLEAN-BOOST / LOW-HIGH toggles
-    juce::TextButton channelButton;
-    juce::TextButton boostButton;
-    juce::TextButton jackButton;
+    // Channel (master) / Gain Mode / Boost / Jack rocker switches.
+    // Order matches the panel row, left to right.
+    RockerSwitch channelSwitch;
+    RockerSwitch gainModeSwitch;
+    RockerSwitch boostSwitch;
+    RockerSwitch jackSwitch;
 
     // Cabinet ComboBox + custom IR loading
     juce::ComboBox cabinetSelector;

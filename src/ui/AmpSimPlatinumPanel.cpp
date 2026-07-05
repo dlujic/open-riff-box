@@ -107,51 +107,52 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     masterLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(masterLabel);
 
-    // GAIN1/GAIN2 toggle button
-    gainModeButton.setButtonText("GAIN1");
-    gainModeButton.setLookAndFeel(&resetLF);
-    gainModeButton.setClickingTogglesState(false);
-    gainModeButton.onClick = [this] {
-        int current = platinumRef.getGainMode();
-        int next = (current == 0) ? 1 : 0;
-        platinumRef.setGainMode(next);
-        gainModeButton.setButtonText(next == 0 ? "GAIN1" : "GAIN2");
-        onParameterChanged();
-    };
-    addAndMakeVisible(gainModeButton);
+    // Warm amber for the rockers: the theme amber (bypass jewel) reads too hot
+    // as a big lit fill, so nudge it warmer and a touch darker.
+    const juce::Colour switchAccent =
+        Theme::Colours::ampSim.withRotatedHue(-0.014f).withMultipliedBrightness(0.9f);
 
-    // Channel toggle (OD/Normal) - swaps Bass/Mid/Treble source and the
-    // enabled OD-only controls, so route it through syncFromDsp().
-    channelButton.setLookAndFeel(&resetLF);
-    channelButton.setClickingTogglesState(false);
-    channelButton.onClick = [this] {
-        platinumRef.setChannel(platinumRef.getChannel() == 0 ? 1 : 0);
+    // Channel (master): swaps the Bass/Mid/Treble source and which controls are
+    // live, so route it through syncFromDsp(). state true == NORMAL.
+    channelSwitch.setLabels("OD", "NORMAL");
+    channelSwitch.setAccentColour(switchAccent);
+    channelSwitch.setTooltip("Switch between the OD and Normal (clean) channel.");
+    channelSwitch.onChange = [this] {
+        platinumRef.setChannel(channelSwitch.getState() ? 1 : 0);
         syncFromDsp();
         onParameterChanged();
     };
-    addAndMakeVisible(channelButton);
+    addAndMakeVisible(channelSwitch);
 
-    // Normal CLEAN/BOOST toggle
-    boostButton.setLookAndFeel(&resetLF);
-    boostButton.setClickingTogglesState(false);
-    boostButton.onClick = [this] {
-        bool next = !platinumRef.getBoost();
-        platinumRef.setBoost(next);
-        boostButton.setButtonText(next ? "BOOST" : "CLEAN");
+    // Gain Mode (OD only). state true == GAIN2.
+    gainModeSwitch.setLabels("GAIN1", "GAIN2");
+    gainModeSwitch.setAccentColour(switchAccent);
+    gainModeSwitch.setTooltip("GAIN1 = lower gain (clean to crunch). GAIN2 = high gain channel.");
+    gainModeSwitch.onChange = [this] {
+        platinumRef.setGainMode(gainModeSwitch.getState() ? 1 : 0);
         onParameterChanged();
     };
-    addAndMakeVisible(boostButton);
+    addAndMakeVisible(gainModeSwitch);
 
-    // Input jack toggle (LOW/HIGH)
-    jackButton.setLookAndFeel(&resetLF);
-    jackButton.setClickingTogglesState(false);
-    jackButton.onClick = [this] {
-        bool next = !platinumRef.getInputLow();
-        platinumRef.setInputLow(next);
-        jackButton.setButtonText(next ? "LOW" : "HIGH");
+    // Boost (Normal only). state true == BOOST.
+    boostSwitch.setLabels("CLEAN", "BOOST");
+    boostSwitch.setAccentColour(switchAccent);
+    boostSwitch.setTooltip("Normal channel voicing: CLEAN or BOOST.");
+    boostSwitch.onChange = [this] {
+        platinumRef.setBoost(boostSwitch.getState());
         onParameterChanged();
     };
-    addAndMakeVisible(jackButton);
+    addAndMakeVisible(boostSwitch);
+
+    // Input jack (both channels). state true == LOW (-6 dB pad).
+    jackSwitch.setLabels("HIGH", "LOW");
+    jackSwitch.setAccentColour(switchAccent);
+    jackSwitch.setTooltip("Input jack: HIGH (full level) or LOW (-6dB pad).");
+    jackSwitch.onChange = [this] {
+        platinumRef.setInputLow(jackSwitch.getState());
+        onParameterChanged();
+    };
+    addAndMakeVisible(jackSwitch);
 
     // Cabinet selector ComboBox
     for (int i = 0; i < AmpSimPlatinum::kNumCabinets; ++i)
@@ -292,10 +293,6 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     normalLevelKnob.setTooltip("Normal channel LEVEL - also the bright cap: low = dark and quiet, high = loud and flat.");
     ovLevelSlider.setTooltip("OV Level - attenuator after the overdrive channel (V3 stage input level).");
     masterSlider.setTooltip("Master volume - controls push-pull power amp output level.");
-    gainModeButton.setTooltip("GAIN1 = lower gain (clean to crunch). GAIN2 = high gain channel.");
-    channelButton.setTooltip("Switch between the OD and Normal (clean) channel.");
-    boostButton.setTooltip("Normal channel voicing: CLEAN or BOOST.");
-    jackButton.setTooltip("Input jack: HIGH (full level) or LOW (-6dB pad).");
     cabinetSelector.setTooltip("Select the speaker cabinet impulse response.");
     cabTrimSlider.setTooltip("Manual cabinet volume trim. Adjusts on top of auto-normalization.");
     loadIRButton.setTooltip("Load a custom cabinet IR (.wav file).");
@@ -333,10 +330,6 @@ AmpSimPlatinumPanel::~AmpSimPlatinumPanel()
     cabTrimSlider.setLookAndFeel(nullptr);
     cabinetSelector.setLookAndFeel(nullptr);
     loadIRButton.setLookAndFeel(nullptr);
-    gainModeButton.setLookAndFeel(nullptr);
-    channelButton.setLookAndFeel(nullptr);
-    boostButton.setLookAndFeel(nullptr);
-    jackButton.setLookAndFeel(nullptr);
     bypassButton.setLookAndFeel(nullptr);
     resetButton.setLookAndFeel(nullptr);
 }
@@ -358,17 +351,17 @@ void AmpSimPlatinumPanel::syncFromDsp()
     masterSlider.setValue(platinumRef.getMaster(),         juce::dontSendNotification);
     cabTrimSlider.setValue(platinumRef.getCabTrim(),       juce::dontSendNotification);
 
-    gainModeButton.setButtonText(platinumRef.getGainMode() == 0 ? "GAIN1" : "GAIN2");
-
-    channelButton.setButtonText(isNormal ? "NORMAL" : "OD");
-    boostButton.setButtonText(platinumRef.getBoost() ? "BOOST" : "CLEAN");
-    jackButton.setButtonText(platinumRef.getInputLow() ? "LOW" : "HIGH");
+    channelSwitch.setState(isNormal,                       juce::dontSendNotification);
+    gainModeSwitch.setState(platinumRef.getGainMode() == 1, juce::dontSendNotification);
+    boostSwitch.setState(platinumRef.getBoost(),           juce::dontSendNotification);
+    jackSwitch.setState(platinumRef.getInputLow(),         juce::dontSendNotification);
 
     // OD-only controls are inert on the Normal channel (engine_spec.md sec 10);
-    // the Level knob is the mirror image - only meaningful on Normal.
+    // the Level knob and Boost are the mirror image - only live on Normal.
     gainKnob.setEnabled(!isNormal);
     ovLevelSlider.setEnabled(!isNormal);
-    gainModeButton.setEnabled(!isNormal);
+    gainModeSwitch.setEnabled(!isNormal);
+    boostSwitch.setEnabled(isNormal);
     normalLevelKnob.setEnabled(isNormal);
 
     int cabType = platinumRef.getCabinetType();
@@ -496,17 +489,20 @@ void AmpSimPlatinumPanel::resized()
     masterLabel.setBounds(ovMasterRow.removeFromLeft(54));
     masterSlider.setBounds(ovMasterRow);
 
-    belowArea.removeFromTop(8);
+    belowArea.removeFromTop(14);
 
-    // GAIN1/GAIN2 toggle + Channel/Boost/Jack toggles
-    auto gainModeRow = belowArea.removeFromTop(30);
-    gainModeButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
-    gainModeRow.removeFromLeft(8);
-    channelButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
-    gainModeRow.removeFromLeft(8);
-    boostButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
-    gainModeRow.removeFromLeft(8);
-    jackButton.setBounds(gainModeRow.removeFromLeft(70).withSizeKeepingCentre(66, 26));
+    // Channel / Gain Mode / Boost / Jack rockers. Fill the row at the default
+    // width; cap + centre so they don't stretch on a wide window.
+    auto switchRow = belowArea.removeFromTop(30);
+    RockerSwitch* switches[] = { &channelSwitch, &gainModeSwitch, &boostSwitch, &jackSwitch };
+    const int switchGap = 8;
+    const int switchW = juce::jmin(120, (switchRow.getWidth() - switchGap * 3) / 4);
+    auto cluster = switchRow.withSizeKeepingCentre(switchW * 4 + switchGap * 3, switchRow.getHeight());
+    for (int i = 0; i < 4; ++i)
+    {
+        switches[i]->setBounds(cluster.removeFromLeft(switchW).withSizeKeepingCentre(switchW, 28));
+        if (i < 3) cluster.removeFromLeft(switchGap);
+    }
 }
 
 void AmpSimPlatinumPanel::setupKnob(juce::Slider& knob, juce::Label& label,
