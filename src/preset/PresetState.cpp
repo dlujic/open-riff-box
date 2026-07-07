@@ -2,6 +2,7 @@
 #include "PluginProcessor.h"
 #include "dsp/EffectChain.h"
 #include "dsp/Compressor.h"
+#include "dsp/Wah.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -50,6 +51,16 @@ Preset capture(OpenRiffBoxProcessor& processor)
             { "blend",    comp->getBlend()   },
             { "level",    comp->getLevel()   },
             { "mode",     comp->getMode()    }
+        });
+    }
+
+    if (auto* wah = dynamic_cast<Wah*>(chain.getEffectByName("Wah")))
+    {
+        preset.effects["Wah"] = makeEffectVar({
+            { "bypassed",   wah->isBypassed() },
+            { "position",   wah->getPosition() },
+            { "coloration", wah->getColoration() },
+            { "taperMode",  wah->getTaperMode() }
         });
     }
 
@@ -309,6 +320,19 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
         for (auto& n : order) if (n == "Compressor") { hasComp = true; break; }
         if (!hasComp)
             order.insert(order.begin(), "Compressor");
+
+        // Trap 2b: old presets lack "Wah". Splice it in right after Compressor
+        // (its default slot) instead of appending after EQ.
+        bool hasWah = false;
+        for (auto& n : order) if (n == "Wah") { hasWah = true; break; }
+        if (!hasWah)
+        {
+            int compIdx = 0;
+            for (int k = 0; k < static_cast<int>(order.size()); ++k)
+                if (order[static_cast<size_t>(k)] == "Compressor") { compIdx = k; break; }
+            order.insert(order.begin() + compIdx + 1, "Wah");
+        }
+
         chain.setEffectOrder(order);
     }
     else
@@ -338,6 +362,31 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
             {
                 comp->setBypassed(true);
                 comp->resetToDefaults();
+            }
+        }
+    }
+
+    {
+        auto it = preset.effects.find("Wah");
+        if (it != preset.effects.end())
+        {
+            auto& v = it->second;
+            if (auto* wah = dynamic_cast<Wah*>(chain.getEffectByName("Wah")))
+            {
+                wah->setBypassed(getBool(v, "bypassed", true));
+                wah->setPosition(getDouble(v, "position", 0.5));
+                wah->setColoration(getBool(v, "coloration", false));
+                wah->setTaperMode(getInt(v, "taperMode", 0));
+            }
+        }
+        else
+        {
+            // Old presets: reset and bypass. Wah is not engine-managed so no
+            // setXEngine call will touch it -- must force bypass here.
+            if (auto* wah = dynamic_cast<Wah*>(chain.getEffectByName("Wah")))
+            {
+                wah->setBypassed(true);
+                wah->resetToDefaults();
             }
         }
     }

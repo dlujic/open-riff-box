@@ -5,6 +5,7 @@
 #include <functional>
 
 class Compressor;
+class Wah;
 class NoiseGate;
 class Distortion;
 class DiodeDrive;
@@ -20,6 +21,7 @@ class Vibrato;
 class Tremolo;
 class Equalizer;
 class CompressorPanel;
+class WahPanel;
 class NoiseGatePanel;
 class DistortionPanel;
 class DiodeDrivePanel;
@@ -36,11 +38,11 @@ class PlateReverb;
 class EffectDetailPanel : public juce::Component
 {
 public:
-    EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer);
+    EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer, Wah& wah);
     ~EffectDetailPanel() override;
 
     // Panel indices: 0=Compressor, 1=Gate, 2=DiodeDrive, 3=Distortion, 4=AmpSim(Switcher),
-    //                5=Delay, 6=Reverb, 7=Modulation, 8=EQ
+    //                5=Delay, 6=Reverb, 7=Modulation, 8=EQ, 9=Wah
     void showEffect(int index);
     void syncBypassStates();
 
@@ -72,8 +74,9 @@ private:
     std::unique_ptr<ReverbSwitcherPanel>       reverbSwitcherPanel;
     std::unique_ptr<ModulationSwitcherPanel>  modulationSwitcherPanel;
     std::unique_ptr<EQPanel>                  eqPanel;
+    std::unique_ptr<WahPanel>                 wahPanel;
 
-    static constexpr int kNumPanels = 9;
+    static constexpr int kNumPanels = 10;
     juce::Component* panels[kNumPanels] = {};
     int currentIndex = -1;
 

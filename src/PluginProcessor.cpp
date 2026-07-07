@@ -1,6 +1,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "dsp/Compressor.h"
+#include "dsp/Wah.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -24,6 +25,7 @@ OpenRiffBoxProcessor::OpenRiffBoxProcessor()
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true))
 {
     effectChain.addEffect(std::make_unique<Compressor>());
+    effectChain.addEffect(std::make_unique<Wah>());
     effectChain.addEffect(std::make_unique<DiodeDrive>());
     effectChain.addEffect(std::make_unique<Distortion>());
     effectChain.addEffect(std::make_unique<AmpSimSilver>());
@@ -205,6 +207,15 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("blend",    comp->getBlend());
         e->setAttribute("level",    comp->getLevel());
         e->setAttribute("mode",     comp->getMode());
+    }
+
+    if (auto* wah = dynamic_cast<Wah*>(effectChain.getEffectByName("Wah")))
+    {
+        auto* e = xml->createNewChildElement("Wah");
+        e->setAttribute("bypassed",   wah->isBypassed());
+        e->setAttribute("position",   wah->getPosition());
+        e->setAttribute("coloration", wah->getColoration());
+        e->setAttribute("taperMode",  wah->getTaperMode());
     }
 
     // Name-based lookup - position-independent
@@ -435,6 +446,19 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             for (auto& n : order) if (n == "Compressor") { hasComp = true; break; }
             if (!hasComp)
                 order.insert(order.begin(), "Compressor");
+
+            // Trap 2b: old saved orders predate Wah. Splice it in right after
+            // Compressor (its default slot) instead of appending after EQ.
+            bool hasWah = false;
+            for (auto& n : order) if (n == "Wah") { hasWah = true; break; }
+            if (!hasWah)
+            {
+                int compIdx = 0;
+                for (int k = 0; k < static_cast<int>(order.size()); ++k)
+                    if (order[static_cast<size_t>(k)] == "Compressor") { compIdx = k; break; }
+                order.insert(order.begin() + compIdx + 1, "Wah");
+            }
+
             effectChain.setEffectOrder(order);
         }
     }
@@ -449,6 +473,17 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             comp->setBlend  (static_cast<float>(compXml->getDoubleAttribute("blend",   1.00)));
             comp->setLevel  (static_cast<float>(compXml->getDoubleAttribute("level",   0.50)));
             comp->setMode   (compXml->getIntAttribute("mode", 0));
+        }
+    }
+
+    if (auto* wahXml = xml->getChildByName("Wah"))
+    {
+        if (auto* wah = dynamic_cast<Wah*>(effectChain.getEffectByName("Wah")))
+        {
+            wah->setBypassed(wahXml->getBoolAttribute("bypassed", true));
+            wah->setPosition(static_cast<float>(wahXml->getDoubleAttribute("position", 0.5)));
+            wah->setColoration(wahXml->getBoolAttribute("coloration", false));
+            wah->setTaperMode(wahXml->getIntAttribute("taperMode", 0));
         }
     }
 

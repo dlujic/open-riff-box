@@ -81,8 +81,8 @@ private:
     bool metronomeActive = false;
 
     // Visual-to-chain index mapping (entries skip "Amp Gold", "Amp Platinum", "Plate Reverb", "Flanger", "Phaser", "Vibrato", "Tremolo")
-    static constexpr int kMaxSlots = 16;      // max chain effects (16 with Compressor)
-    static constexpr int kNumVisualSlots = 9; // displayed rows (AmpGold, Platinum, PlateReverb, Flanger, Phaser, Vibrato, Tremolo hidden)
+    static constexpr int kMaxSlots = 17;       // max chain effects (17 with Compressor + Wah)
+    static constexpr int kNumVisualSlots = 10; // displayed rows (AmpGold, Platinum, PlateReverb, Flanger, Phaser, Vibrato, Tremolo hidden)
     int visualToChain[kMaxSlots] = {};
     int numVisualSlots = 0;
 

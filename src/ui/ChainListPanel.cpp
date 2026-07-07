@@ -101,6 +101,7 @@ juce::Colour ChainListPanel::getColourForEffect(const juce::String& name)
 {
     if (name == "Compressor")         return Theme::Colours::gate;
     if (name == "Noise Gate")         return Theme::Colours::gate;
+    if (name == "Wah")                return Theme::Colours::modulation;
     if (name == "Diode Drive")        return Theme::Colours::drive;
     if (name == "Distortion")         return Theme::Colours::distortion;
     if (name == "Amp Silver")         return Theme::Colours::ampSim;

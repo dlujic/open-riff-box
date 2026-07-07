@@ -12,12 +12,13 @@
 #include "ChorusPanel.h"
 #include "FlangerPanel.h"
 #include "EQPanel.h"
+#include "WahPanel.h"
 #include "Theme.h"
 #include "dsp/AmpSimPlatinum.h"
 #include "dsp/PlateReverb.h"
 #include "dsp/Compressor.h"
 
-EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer)
+EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Distortion& distortion, DiodeDrive& diodeDrive, AmpSimSilver& ampSimSilver, AmpSimGold& ampSimGold, AmpSimPlatinum& ampSimPlatinum, AnalogDelay& analogDelay, SpringReverb& springReverb, PlateReverb& plateReverb, Chorus& chorus, Flanger& flanger, Phaser& phaser, Vibrato& vibrato, Tremolo& tremolo, Equalizer& equalizer, Wah& wah)
 {
     compressorPanel      = std::make_unique<CompressorPanel>(compressor);
     noiseGatePanel       = std::make_unique<NoiseGatePanel>(gate);
@@ -28,6 +29,7 @@ EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Di
     reverbSwitcherPanel      = std::make_unique<ReverbSwitcherPanel>(springReverb, plateReverb);
     modulationSwitcherPanel  = std::make_unique<ModulationSwitcherPanel>(chorus, flanger, phaser, vibrato, tremolo);
     eqPanel                  = std::make_unique<EQPanel>(equalizer);
+    wahPanel                 = std::make_unique<WahPanel>(wah);
 
     panels[0] = compressorPanel.get();
     panels[1] = noiseGatePanel.get();
@@ -38,6 +40,7 @@ EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Di
     panels[6] = reverbSwitcherPanel.get();
     panels[7] = modulationSwitcherPanel.get();
     panels[8] = eqPanel.get();
+    panels[9] = wahPanel.get();
 
     // Wire bypass callbacks
     compressorPanel->onBypassToggled           = [this] { onBypassChanged(); };
@@ -49,6 +52,7 @@ EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Di
     reverbSwitcherPanel->onBypassToggled       = [this] { onBypassChanged(); };
     modulationSwitcherPanel->onBypassToggled   = [this] { onBypassChanged(); };
     eqPanel->onBypassToggled                   = [this] { onBypassChanged(); };
+    wahPanel->onBypassToggled                  = [this] { onBypassChanged(); };
 
     // Wire parameter change callbacks (clears active preset on any tweak)
     auto paramChanged = [this] { onParameterChanged(); };
@@ -61,6 +65,7 @@ EffectDetailPanel::EffectDetailPanel(Compressor& compressor, NoiseGate& gate, Di
     reverbSwitcherPanel->onParameterChanged      = paramChanged;
     modulationSwitcherPanel->onParameterChanged  = paramChanged;
     eqPanel->onParameterChanged                  = paramChanged;
+    wahPanel->onParameterChanged                 = paramChanged;
 
     for (auto* p : panels)
         addChildComponent(p);
@@ -94,6 +99,7 @@ void EffectDetailPanel::syncBypassStates()
     reverbSwitcherPanel->syncFromDsp();
     modulationSwitcherPanel->syncFromDsp();
     eqPanel->syncFromDsp();
+    wahPanel->syncFromDsp();
 }
 
 void EffectDetailPanel::showEffect(int index)

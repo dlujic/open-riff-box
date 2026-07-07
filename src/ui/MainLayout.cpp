@@ -9,6 +9,7 @@
 #include "PluginProcessor.h"
 #include "preset/PresetManager.h"
 #include "dsp/Compressor.h"
+#include "dsp/Wah.h"
 #include "dsp/NoiseGate.h"
 #include "dsp/Distortion.h"
 #include "dsp/DiodeDrive.h"
@@ -42,6 +43,7 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     // Get DSP effect references for the detail panels (name-based, order-independent)
     auto& chain = processorRef.getEffectChain();
     auto* compressor = dynamic_cast<Compressor*>(chain.getEffectByName("Compressor"));
+    auto* wah        = dynamic_cast<Wah*>(chain.getEffectByName("Wah"));
     auto* gate       = dynamic_cast<NoiseGate*>(chain.getEffectByName("Noise Gate"));
     auto* diodeDrive = dynamic_cast<DiodeDrive*>(chain.getEffectByName("Diode Drive"));
     auto* distortion = dynamic_cast<Distortion*>(chain.getEffectByName("Distortion"));
@@ -58,9 +60,9 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     auto* tremolo = dynamic_cast<Tremolo*>(chain.getEffectByName("Tremolo"));
     auto* equalizer = dynamic_cast<Equalizer*>(chain.getEffectByName("EQ"));
 
-    if (compressor != nullptr && gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && tremolo != nullptr && equalizer != nullptr)
+    if (compressor != nullptr && wah != nullptr && gate != nullptr && distortion != nullptr && diodeDrive != nullptr && ampSim != nullptr && ampSim2 != nullptr && ampSimPlatinum != nullptr && analogDelay != nullptr && springReverb != nullptr && plateReverb != nullptr && chorus != nullptr && flanger != nullptr && phaser != nullptr && vibrato != nullptr && tremolo != nullptr && equalizer != nullptr)
     {
-        detailPanel = std::make_unique<EffectDetailPanel>(*compressor, *gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *tremolo, *equalizer);
+        detailPanel = std::make_unique<EffectDetailPanel>(*compressor, *gate, *distortion, *diodeDrive, *ampSim, *ampSim2, *ampSimPlatinum, *analogDelay, *springReverb, *plateReverb, *chorus, *flanger, *phaser, *vibrato, *tremolo, *equalizer, *wah);
         addAndMakeVisible(*detailPanel);
 
         // Sync bypass state between chain list and detail panels
@@ -221,8 +223,8 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
         if (presetBar) presetBar->refreshSlots();
     };
 
-    // Default to Amp Sim on first load (visual index 3 = Amp Sim, after Compressor/Diode Drive/Distortion)
-    chainList.selectEffect(3);
+    // Default to Amp Sim on first load (visual index 4 = Amp Sim, after Compressor/Wah/Diode Drive/Distortion)
+    chainList.selectEffect(4);
 }
 
 MainLayout::~MainLayout()
@@ -472,6 +474,7 @@ int MainLayout::chainIndexToPanelIndex(const juce::String& effectName)
     // Maps effect display name to its fixed index in EffectDetailPanel::panels[]
     // (panels are always created in default order, with amp sims merged)
     if (effectName == "Compressor")   return 0;
+    if (effectName == "Wah")          return 9;
     if (effectName == "Noise Gate")   return 1;
     if (effectName == "Diode Drive")  return 2;
     if (effectName == "Distortion")   return 3;

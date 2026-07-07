@@ -57,6 +57,7 @@ target_sources(OpenRiffBox
         src/dsp/Flanger.cpp
         src/dsp/Phaser.cpp
         src/dsp/Vibrato.cpp
+        src/dsp/Wah.cpp
         src/dsp/Tremolo.cpp
         src/dsp/Equalizer.cpp
         src/dsp/WaveshaperEngine.cpp
@@ -83,6 +84,7 @@ target_sources(OpenRiffBox
         src/ui/FlangerPanel.cpp
         src/ui/PhaserPanel.cpp
         src/ui/VibratoPanel.cpp
+        src/ui/WahPanel.cpp
         src/ui/TremoloPanel.cpp
         src/ui/ModulationSwitcherPanel.cpp
         src/ui/EQPanel.cpp
