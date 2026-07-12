@@ -37,11 +37,11 @@ namespace
     // asymmetric even-harmonic warmth for the pushed case. Ear-tunable (fork #2).
     constexpr float kColorDrive = 1.0f;
     constexpr float kColorBias  = 0.20f;
+    const float kColorBiasTerm  = std::tanh(kColorDrive * kColorBias);
 
     inline float shape(float x)
     {
-        float y = std::tanh(kColorDrive * (x + kColorBias)) - std::tanh(kColorDrive * kColorBias);
-        return y / kColorDrive;
+        return (std::tanh(kColorDrive * (x + kColorBias)) - kColorBiasTerm) / kColorDrive;
     }
 }
 
@@ -65,6 +65,7 @@ void Wah::prepare(double sampleRate, int samplesPerBlock)
 
     positionSmoothed.reset(sampleRate, 0.012);
     positionSmoothed.setCurrentAndTargetValue(positionParam);
+    prevColorationOn = colorationOn.load(std::memory_order_acquire);
 
     colorDcR = 1.0f - 2.0f * juce::MathConstants<float>::pi * 10.0f / static_cast<float>(sampleRate);
 }
@@ -78,11 +79,13 @@ void Wah::reset()
 
     oversampling->reset();
     positionSmoothed.reset(currentSampleRate, 0.012);
+    prevColorationOn = colorationOn.load(std::memory_order_acquire);
 }
 
 int Wah::getLatencySamples() const
 {
-    return colorationOn ? static_cast<int>(oversampling->getLatencyInSamples()) : 0;
+    return colorationOn.load(std::memory_order_acquire)
+               ? static_cast<int>(oversampling->getLatencyInSamples()) : 0;
 }
 
 void Wah::process(juce::AudioBuffer<float>& buffer)
@@ -142,15 +145,24 @@ void Wah::process(juce::AudioBuffer<float>& buffer)
     // Coloration: thin asymmetric waveshaper on the resonance-boosted output, oversampled
     // 4x + DC-blocked (asymmetry adds DC). Full wet -- a wah is an inline filter. Default
     // off; the filter alone is the faithful GCB-95 (NOTES section 6).
-    if (colorationOn)
+    const bool colorOn = colorationOn.load(std::memory_order_acquire);
+    if (colorOn)
     {
+        // stale oversampler/DC state from an earlier coloration stint clicks on re-enable
+        if (!prevColorationOn)
+        {
+            oversampling->reset();
+            colorDc[0] = {};
+            colorDc[1] = {};
+        }
+
         juce::dsp::AudioBlock<float> block(buffer);
         auto oversampledBlock = oversampling->processSamplesUp(block);
 
         const auto osNumSamples  = static_cast<int>(oversampledBlock.getNumSamples());
         const auto osNumChannels = static_cast<int>(oversampledBlock.getNumChannels());
 
-        for (int ch = 0; ch < osNumChannels; ++ch)
+        for (int ch = 0; ch < juce::jmin(osNumChannels, 2); ++ch)
         {
             auto* samples = oversampledBlock.getChannelPointer(static_cast<size_t>(ch));
             for (int n = 0; n < osNumSamples; ++n)
@@ -174,6 +186,7 @@ void Wah::process(juce::AudioBuffer<float>& buffer)
             }
         }
     }
+    prevColorationOn = colorOn;
 }
 
 void Wah::resetToDefaults()
@@ -184,13 +197,13 @@ void Wah::resetToDefaults()
 }
 
 void Wah::setPosition(float value)   { positionParam = juce::jlimit(0.0f, 1.0f, value); }
-void Wah::setColoration(bool on)     { colorationOn = on; }
-void Wah::setTaperMode(int mode)     { taperMode = static_cast<TaperMode>(juce::jlimit(0, 1, mode)); }
+void Wah::setColoration(bool on)     { colorationOn.store(on, std::memory_order_release); }
+void Wah::setTaperMode(int mode)     { taperMode.store(juce::jlimit(0, 1, mode), std::memory_order_release); }
 
 float Wah::positionToWiper(float position) const
 {
     position = juce::jlimit(0.0f, 1.0f, position);
-    if (taperMode == TaperMode::Linear)
+    if (taperMode.load(std::memory_order_acquire) == static_cast<int>(TaperMode::Linear))
         return position;                       // raw electrical / validation: p == position
 
     // Hot Potz dead zones: ~15-20% mechanical dead travel at each end never rotates the

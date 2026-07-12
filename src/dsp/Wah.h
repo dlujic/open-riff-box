@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_dsp/juce_dsp.h>
 
@@ -25,13 +27,14 @@ public:
     void setTaperMode(int mode);      // 0 = DeadZones (default), 1 = Linear (raw/validation)
 
     float getPosition()   const { return positionParam; }
-    bool  getColoration() const { return colorationOn; }
-    int   getTaperMode()  const { return static_cast<int>(taperMode); }
+    bool  getColoration() const { return colorationOn.load(std::memory_order_acquire); }
+    int   getTaperMode()  const { return taperMode.load(std::memory_order_acquire); }
 
 private:
     float positionParam = 0.5f;       // default: mid-sweep (~750 Hz dead-zones), a parked wah
-    bool  colorationOn  = false;      // gate validates with this OFF
-    TaperMode taperMode = TaperMode::DeadZones;
+    std::atomic<bool> colorationOn { false };   // gate validates with this OFF
+    std::atomic<int>  taperMode { 0 };          // TaperMode; int for the atomic
+    bool prevColorationOn = false;    // audio-thread edge detect for state reset
 
     juce::SmoothedValue<float> positionSmoothed;
     double currentSampleRate = 44100.0;

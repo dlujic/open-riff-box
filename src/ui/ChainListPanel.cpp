@@ -607,7 +607,7 @@ void ChainListPanel::resized()
 
     const int arrowW = reorderMode ? 20 : 0;
 
-    // Effects section (9 visual slots)
+    // Effects section (one row per visual slot)
     for (int i = 0; i < kNumVisualSlots; ++i)
     {
         int y = i * rowH + btnMarginV;
