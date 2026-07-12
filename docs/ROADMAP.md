@@ -86,7 +86,7 @@ openriffbox/
 
 --
 
-## Current State (v0.8.3)
+## Current State (v0.8.4)
 
 17 effects across 10 slots, all implemented:
 
