@@ -34,9 +34,11 @@ public:
     int getActiveSlotIndex() const { return activeSlot; }
     int getActivePresetIndex() const { return activePresetIndex; }
 
-    // Clear active selection (called when user changes any parameter after loading a preset)
-    void clearActivePreset();
     bool hasActivePreset() const { return activePresetIndex >= 0; }
+
+    // Dirty tracking: active preset stays selected across edits, just marked modified
+    void markActiveDirty();
+    bool isActiveDirty() const { return activeDirty; }
 
     // Loads the "Init" factory preset (bypasses everything). Returns false if not found.
     bool loadInitPreset();
@@ -48,6 +50,7 @@ public:
 
     std::function<void()> onPresetLoaded = [] {};
     std::function<void()> onPresetListChanged = [] {};
+    std::function<void()> onPresetDirtyChanged = [] {};
 
 private:
     OpenRiffBoxProcessor& processor;
@@ -58,6 +61,10 @@ private:
     int slotAssignments[numSlots] = { -1, -1, -1, -1 };
     int activeSlot = -1;
     int activePresetIndex = -1;
+    bool activeDirty = false;
+
+    // Default slot assignments by name (stable across preset additions)
+    static constexpr const char* defaultSlotNames[numSlots] = { "Crystal Clean", "Platinum Crunch", "Metal Rhythm", nullptr };
 
     void applyPreset(const Preset& preset);
     int findPresetByFile(const juce::File& file) const;

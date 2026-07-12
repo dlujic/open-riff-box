@@ -13,12 +13,10 @@ PresetManager::PresetManager(OpenRiffBoxProcessor& proc, const juce::File& prese
 
     scanPresets();
 
-    // Set default slot assignments by name (stable across preset additions)
-    static const char* defaultNames[numSlots] = { "Clean", "Blues", "Classic Rock", nullptr };
     for (int s = 0; s < numSlots; ++s)
     {
-        if (defaultNames[s] != nullptr)
-            slotAssignments[s] = findPresetByName(defaultNames[s]);
+        if (defaultSlotNames[s] != nullptr)
+            slotAssignments[s] = findPresetByName(defaultSlotNames[s]);
     }
 }
 
@@ -77,6 +75,7 @@ bool PresetManager::loadPreset(int index)
 
     applyPreset(presets[static_cast<size_t>(index)]);
     activePresetIndex = index;
+    activeDirty = false;
 
     // Update active slot if this preset is assigned to one
     activeSlot = -1;
@@ -93,12 +92,13 @@ bool PresetManager::loadPreset(int index)
     return true;
 }
 
-void PresetManager::clearActivePreset()
+void PresetManager::markActiveDirty()
 {
-    if (activePresetIndex < 0) return;  // already clear
-    activePresetIndex = -1;
-    activeSlot = -1;
-    onPresetLoaded();  // reuse existing callback to refresh UI
+    // Guard matters: edit paths call this on every knob tick, but the
+    // notification should only fire once per load (first edit after it).
+    if (activePresetIndex < 0 || activeDirty) return;
+    activeDirty = true;
+    onPresetDirtyChanged();
 }
 
 bool PresetManager::savePresetAs(const juce::String& name, const juce::String& author)
@@ -128,6 +128,7 @@ bool PresetManager::savePresetAs(const juce::String& name, const juce::String& a
     presets.push_back(std::move(preset));
 
     activePresetIndex = static_cast<int>(presets.size()) - 1;
+    activeDirty = false;
     onPresetListChanged();
     return true;
 }
@@ -154,7 +155,10 @@ bool PresetManager::deletePreset(int index)
     }
 
     if (activePresetIndex == index)
+    {
         activePresetIndex = -1;
+        activeDirty = false;
+    }
     else if (activePresetIndex > index)
         activePresetIndex--;
 
@@ -182,6 +186,7 @@ bool PresetManager::loadInitPreset()
             applyPreset(presets[static_cast<size_t>(i)]);
             activeSlot = -1;
             activePresetIndex = -1;
+            activeDirty = false;
             onPresetLoaded();
             return true;
         }
@@ -218,6 +223,7 @@ bool PresetManager::loadSlot(int slot)
     applyPreset(presets[static_cast<size_t>(presetIdx)]);
     activeSlot = slot;
     activePresetIndex = presetIdx;
+    activeDirty = false;
     onPresetLoaded();
     return true;
 }
@@ -249,10 +255,8 @@ void PresetManager::loadSlotAssignments(juce::PropertiesFile* props)
 
         if (path.isEmpty())
         {
-            // Default slots by name (stable across preset additions)
-            static const char* defaultNames[numSlots] = { "Clean", "Blues", "Classic Rock", nullptr };
-            if (defaultNames[s] != nullptr)
-                slotAssignments[s] = findPresetByName(defaultNames[s]);
+            if (defaultSlotNames[s] != nullptr)
+                slotAssignments[s] = findPresetByName(defaultSlotNames[s]);
             else
                 slotAssignments[s] = -1;
         }

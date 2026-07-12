@@ -68,16 +68,16 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
         // Sync bypass state between chain list and detail panels
         detailPanel->onBypassChanged = [this] {
             chainList.refreshBypassStates();
-            if (presetManager) presetManager->clearActivePreset();
+            if (presetManager) presetManager->markActiveDirty();
         };
         chainList.onBypassChanged = [this] {
             if (detailPanel) detailPanel->syncBypassStates();
-            if (presetManager) presetManager->clearActivePreset();
+            if (presetManager) presetManager->markActiveDirty();
         };
 
-        // Clear active preset when user tweaks any parameter
+        // Mark the active preset dirty when the user tweaks any parameter
         detailPanel->onParameterChanged = [this] {
-            if (presetManager) presetManager->clearActivePreset();
+            if (presetManager) presetManager->markActiveDirty();
         };
 
         // Wire amp sim engine switching
@@ -93,7 +93,7 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
                 chainList.refreshBypassStates();
                 if (auto* s = detailPanel->getAmpSimSwitcher())
                     s->syncFromDsp();
-                if (presetManager) presetManager->clearActivePreset();
+                if (presetManager) presetManager->markActiveDirty();
             };
         }
 
@@ -110,7 +110,7 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
                 chainList.refreshBypassStates();
                 if (auto* rs = detailPanel->getReverbSwitcher())
                     rs->syncFromDsp();
-                if (presetManager) presetManager->clearActivePreset();
+                if (presetManager) presetManager->markActiveDirty();
             };
         }
 
@@ -127,7 +127,7 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
                 chainList.refreshBypassStates();
                 if (auto* ms = detailPanel->getModulationSwitcher())
                     ms->syncFromDsp();
-                if (presetManager) presetManager->clearActivePreset();
+                if (presetManager) presetManager->markActiveDirty();
             };
         }
     }
@@ -190,12 +190,12 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
 
     presetManager = std::make_unique<PresetManager>(processorRef, presetsDir);
 
-    // Load slot assignments from app settings
-    if (auto* app = dynamic_cast<juce::JUCEApplication*>(juce::JUCEApplication::getInstance()))
-    {
-        // Access ApplicationProperties via the standalone filter window
-        // Slot assignments will use defaults (0,1,2,-1) on first run
-    }
+    // Load slot assignments from app settings (falls back to defaults if unset)
+#if JucePlugin_Build_Standalone
+    if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        if (auto* props = dynamic_cast<juce::PropertiesFile*>(holder->settings.get()))
+            presetManager->loadSlotAssignments(props);
+#endif
 
     presetBar = std::make_unique<PresetBar>(*presetManager);
     addAndMakeVisible(*presetBar);
@@ -212,6 +212,11 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     {
         if (presetBar) presetBar->refreshSlots();
         if (presetBrowserPanel) presetBrowserPanel->refreshList();
+    };
+
+    presetManager->onPresetDirtyChanged = [this]
+    {
+        if (presetBar) presetBar->refreshSlots();
     };
 
     presetBrowserPanel = std::make_unique<PresetBrowserPanel>(*presetManager);
@@ -430,7 +435,7 @@ void MainLayout::effectSelected(int chainIndex)
 void MainLayout::effectOrderChanged()
 {
     if (presetManager)
-        presetManager->clearActivePreset();
+        presetManager->markActiveDirty();
 }
 
 void MainLayout::refreshAllUI()

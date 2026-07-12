@@ -517,13 +517,15 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
         if (auto* dist = dynamic_cast<Distortion*>(effectChain.getEffectByName("Distortion")))
         {
             dist->setBypassed(distXml->getBoolAttribute("bypassed", true));
+            // Mode before drive/tone/level: those setters route to the Metal
+            // engine only when the mode is already Metal.
+            dist->setMode(static_cast<Distortion::Mode>(distXml->getIntAttribute("mode", 0)));
             dist->setDrive(static_cast<float>(distXml->getDoubleAttribute("drive", 0.5)));
             dist->setTone(static_cast<float>(distXml->getDoubleAttribute("tone", 0.65)));
             dist->setLevel(static_cast<float>(distXml->getDoubleAttribute("level", 0.7)));
             dist->setMix(static_cast<float>(distXml->getDoubleAttribute("mix", 0.2)));
             dist->setSaturate(static_cast<float>(distXml->getDoubleAttribute("saturate", 0.5)));
             dist->setSaturateEnabled(distXml->getBoolAttribute("saturateEnabled", false));
-            dist->setMode(static_cast<Distortion::Mode>(distXml->getIntAttribute("mode", 0)));
             dist->setClipType(static_cast<Distortion::ClipType>(distXml->getIntAttribute("clipType", 1)));
         }
     }

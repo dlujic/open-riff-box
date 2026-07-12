@@ -23,6 +23,7 @@ private:
     PresetManager& presetManager;
     PresetBarLookAndFeel slotLF;
 
+    juce::Label activePresetLabel;
     juce::TextButton slotButtons[4];
     juce::TextButton clearButton { "CLR" };
 

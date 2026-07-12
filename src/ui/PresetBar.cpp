@@ -5,6 +5,14 @@
 PresetBar::PresetBar(PresetManager& manager)
     : presetManager(manager)
 {
+    // Active-preset readout: the loaded preset may not be assigned to any slot
+    // (e.g. loaded straight from the browser), so it needs its own display.
+    activePresetLabel.setFont(Theme::Fonts::small());
+    activePresetLabel.setColour(juce::Label::textColourId, Theme::Colours::textSecondary.withAlpha(0.75f));
+    activePresetLabel.setJustificationType(juce::Justification::centredLeft);
+    activePresetLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(activePresetLabel);
+
     for (int i = 0; i < 4; ++i)
     {
         slotButtons[i].setLookAndFeel(&slotLF);
@@ -43,6 +51,7 @@ PresetBar::~PresetBar()
 void PresetBar::refreshSlots()
 {
     int activeSlot = presetManager.getActiveSlotIndex();
+    bool dirty = presetManager.isActiveDirty();
 
     for (int i = 0; i < 4; ++i)
     {
@@ -52,6 +61,8 @@ void PresetBar::refreshSlots()
         if (preset != nullptr)
         {
             juce::String label = juce::String(i + 1) + ". " + preset->name;
+            if (i == activeSlot && dirty)
+                label << "*";
             slotButtons[i].setButtonText(label);
         }
         else
@@ -61,6 +72,12 @@ void PresetBar::refreshSlots()
 
         slotButtons[i].setToggleState(i == activeSlot, juce::dontSendNotification);
     }
+
+    auto* activePreset = presetManager.getPreset(presetManager.getActivePresetIndex());
+    juce::String activeText = activePreset != nullptr ? activePreset->name : "---";
+    if (activePreset != nullptr && dirty)
+        activeText << "*";
+    activePresetLabel.setText(activeText, juce::dontSendNotification);
 
     repaint();
 }
@@ -93,6 +110,12 @@ void PresetBar::resized()
     clearButton.setBounds(clrArea.reduced(2, 0));
 
     area.removeFromRight(2); // gap
+
+    // Active-preset readout at the left edge (fixed width)
+    auto readoutArea = area.removeFromLeft(150);
+    activePresetLabel.setBounds(readoutArea.reduced(4, 0));
+
+    area.removeFromLeft(2); // gap
 
     // 4 slot buttons fill the rest
     int buttonW = area.getWidth() / 4;

@@ -2,6 +2,8 @@
 #include "Theme.h"
 #include "preset/PresetManager.h"
 #include "preset/Preset.h"
+#include <juce_audio_utils/juce_audio_utils.h>
+#include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 PresetBrowserPanel::PresetBrowserPanel(PresetManager& manager)
     : presetManager(manager)
@@ -79,6 +81,12 @@ PresetBrowserPanel::PresetBrowserPanel(PresetManager& manager)
                 presetManager.assignSlot(i, selectedPresetIndex);
                 showAssignPicker(false);
                 presetManager.onPresetListChanged();
+
+#if JucePlugin_Build_Standalone
+                if (auto* holder = juce::StandalonePluginHolder::getInstance())
+                    if (auto* props = dynamic_cast<juce::PropertiesFile*>(holder->settings.get()))
+                        presetManager.saveSlotAssignments(props);
+#endif
             }
         };
         addChildComponent(assignSlotButtons[i]);

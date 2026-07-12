@@ -73,7 +73,7 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
     // Versionless JSON (hand-authored configs) is left untouched.
     if (static_cast<int>(root->getProperty("version")) == 1)
     {
-        auto it = result.effects.find("Amp Platinum");
+        auto it = result.effects.find("AmpSimPlatinum");
         if (it != result.effects.end())
         {
             if (auto* plat = it->second.getDynamicObject())
