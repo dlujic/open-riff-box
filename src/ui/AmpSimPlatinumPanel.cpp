@@ -370,8 +370,7 @@ void AmpSimPlatinumPanel::syncFromDsp()
         auto irName = platinumRef.getCustomIRFile().getFileNameWithoutExtension();
         int customId = AmpSimPlatinum::kCustomCabinet + 1;
 
-        // 14 IRs + No Cabinet = 15 built-in items
-        if (cabinetSelector.getNumItems() <= AmpSimPlatinum::kNumCabinets + 1)
+        if (cabinetSelector.indexOfItemId(customId) < 0)
             cabinetSelector.addItem("Custom: " + irName, customId);
         else
             cabinetSelector.changeItemText(customId, "Custom: " + irName);

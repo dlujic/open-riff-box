@@ -17,6 +17,7 @@
 #include "dsp/Vibrato.h"
 #include "dsp/Tremolo.h"
 #include "dsp/Equalizer.h"
+#include "preset/Preset.h"
 
 //==============================================================================
 OpenRiffBoxProcessor::OpenRiffBoxProcessor()
@@ -172,6 +173,7 @@ juce::AudioProcessorEditor* OpenRiffBoxProcessor::createEditor()
 void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto xml = std::make_unique<juce::XmlElement>("OpenRiffBoxState");
+    xml->setAttribute("version", Preset::kSchemaVersion);
     // audioActive intentionally not saved - always start stopped
     xml->setAttribute("limiterEnabled", limiterEnabled.load(std::memory_order_acquire));
     xml->setAttribute("masterVolume", static_cast<double>(masterVolume.load(std::memory_order_relaxed)));
@@ -419,6 +421,10 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     if (xml == nullptr || !xml->hasTagName("OpenRiffBoxState"))
         return;
 
+    // State written before the cabinet sentinels were pinned stored them as
+    // 14/15. The attribute is absent from every such blob, hence the 0 default.
+    const bool legacyCabinets = xml->getIntAttribute("version", 0) < 3;
+
     // audioActive always starts false - don't restore it
     limiterEnabled.store(xml->getBoolAttribute("limiterEnabled", true), std::memory_order_release);
     masterVolume.store(static_cast<float>(xml->getDoubleAttribute("masterVolume", 1.0)), std::memory_order_relaxed);
@@ -541,7 +547,10 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             amp->setTreble(static_cast<float>(ampXml->getDoubleAttribute("treble", 0.5)));
             amp->setPreampBoost(ampXml->getBoolAttribute("preampBoost", false));
             amp->setSpeakerDrive(static_cast<float>(ampXml->getDoubleAttribute("speakerDrive", 0.2)));
-            amp->setCabinetType(ampXml->getIntAttribute("cabinetType", 0));
+            {
+                int cab = ampXml->getIntAttribute("cabinetType", 0);
+                amp->setCabinetType(legacyCabinets ? AmpSimSilver::remapLegacyCabinet(cab) : cab);
+            }
             amp->setBrightness(static_cast<float>(ampXml->getDoubleAttribute("brightness", 0.5)));
             amp->setMicPosition(static_cast<float>(ampXml->getDoubleAttribute("micPosition", 0.3)));
             amp->setCabTrim(static_cast<float>(ampXml->getDoubleAttribute("cabTrim", 0.0)));
@@ -560,7 +569,10 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             amp2->setPreampBoost(amp2Xml->getBoolAttribute("preampBoost", false));
             amp2->setSpeakerDrive(static_cast<float>(amp2Xml->getDoubleAttribute("speakerDrive", 0.2)));
             amp2->setPresence(static_cast<float>(amp2Xml->getDoubleAttribute("presence", 0.70)));
-            amp2->setCabinetType(amp2Xml->getIntAttribute("cabinetType", 10));
+            {
+                int cab = amp2Xml->getIntAttribute("cabinetType", 10);
+                amp2->setCabinetType(legacyCabinets ? AmpSimGold::remapLegacyCabinet(cab) : cab);
+            }
             amp2->setBrightness(static_cast<float>(amp2Xml->getDoubleAttribute("brightness", 0.6)));
             amp2->setMicPosition(static_cast<float>(amp2Xml->getDoubleAttribute("micPosition", 0.5)));
             amp2->setCabTrim(static_cast<float>(amp2Xml->getDoubleAttribute("cabTrim", 0.0)));
@@ -579,7 +591,10 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             plat->setTreble(static_cast<float>(platXml->getDoubleAttribute("treble", 0.5)));
             plat->setMaster(static_cast<float>(platXml->getDoubleAttribute("master", 0.3)));
             plat->setGainMode(platXml->getIntAttribute("gainMode", 0));
-            plat->setCabinetType(platXml->getIntAttribute("cabinetType", 0));
+            {
+                int cab = platXml->getIntAttribute("cabinetType", 0);
+                plat->setCabinetType(legacyCabinets ? AmpSimPlatinum::remapLegacyCabinet(cab) : cab);
+            }
             plat->setMicPosition(static_cast<float>(platXml->getDoubleAttribute("micPosition", 0.5)));
             plat->setCabTrim(static_cast<float>(platXml->getDoubleAttribute("cabTrim", 0.0)));
             plat->setChannel(platXml->getIntAttribute("channel", 0));

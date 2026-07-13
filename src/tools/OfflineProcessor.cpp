@@ -444,7 +444,12 @@ bool runOfflineProcessor(const juce::StringArray& args)
     float speakerDrive = parseParam("--speaker-drive", 0.2f);
     float brightness   = parseParam("--brightness",    0.6f);
     float micPosition  = parseParam("--mic-position",  0.5f);
-    int   cabinet      = static_cast<int>(parseParam("--cabinet", 0.0f));
+    // --cabinet keeps the pre-v3 wire encoding (14 = none, 15 = custom) -- the GPU
+    // harnesses pass those literals. Lift once here so the log and both engines see
+    // the pinned sentinels. Either engine's remap will do: the pinned values no
+    // longer track the IR count, so the mapping is the same for all three.
+    int   cabinet      = AmpSimGold::remapLegacyCabinet(
+                             static_cast<int>(parseParam("--cabinet", 0.0f)));
     bool  boost        = args.contains("--boost");
 
     // Platinum-specific params

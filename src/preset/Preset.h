@@ -5,6 +5,12 @@
 
 struct Preset
 {
+    // Bumped whenever stored state needs a load-time migration. Shared with the
+    // app XML so one number describes both encodings.
+    //   1 -> 2: Platinum master became a knob position under the VR12 pot law
+    //   2 -> 3: cabinet sentinels pinned (were derived from the factory IR count)
+    static constexpr int kSchemaVersion = 3;
+
     juce::String name;
     juce::String author;
     juce::String date;

@@ -1,12 +1,39 @@
 #include "Preset.h"
+#include "dsp/AmpSimGold.h"
 #include "dsp/AmpSimPlatinum.h"
+#include "dsp/AmpSimSilver.h"
+
+namespace
+{
+    // Pre-v3 presets stored the cabinet sentinels as 14/15 -- the factory IR
+    // count and one past it. Lift them onto the pinned values so "No Cabinet"
+    // and "Custom IR" survive; factory indices pass through untouched.
+    void remapLegacyCabinets(std::map<juce::String, juce::var>& effects)
+    {
+        auto lift = [&effects](const char* key, int (*remap)(int))
+        {
+            auto it = effects.find(key);
+            if (it == effects.end())
+                return;
+
+            if (auto* obj = it->second.getDynamicObject())
+                if (obj->hasProperty("cabinetType"))
+                    obj->setProperty("cabinetType",
+                                     remap(static_cast<int>(obj->getProperty("cabinetType"))));
+        };
+
+        lift("AmpSimSilver",   &AmpSimSilver::remapLegacyCabinet);
+        lift("AmpSimGold",     &AmpSimGold::remapLegacyCabinet);
+        lift("AmpSimPlatinum", &AmpSimPlatinum::remapLegacyCabinet);
+    }
+}
 
 juce::var Preset::toJson() const
 {
     auto* root = new juce::DynamicObject();
 
     root->setProperty("format", "OpenRiffBox");
-    root->setProperty("version", 2);
+    root->setProperty("version", kSchemaVersion);
     root->setProperty("name", name);
     root->setProperty("author", author);
     root->setProperty("date", date);
@@ -68,10 +95,13 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
     for (auto& prop : effectsObj->getProperties())
         result.effects[prop.name.toString()] = prop.value;
 
+    // Versionless JSON (hand-authored configs) is written against the current
+    // encoding, so it is left untouched -- 0 falls outside every gate below.
+    const int version = static_cast<int>(root->getProperty("version"));
+
     // v1 stored the Platinum master as a flat multiplier; v2 stores the knob
     // position under the VR12 pot law. Remap so old presets keep their drive.
-    // Versionless JSON (hand-authored configs) is left untouched.
-    if (static_cast<int>(root->getProperty("version")) == 1)
+    if (version == 1)
     {
         auto it = result.effects.find("AmpSimPlatinum");
         if (it != result.effects.end())
@@ -84,6 +114,10 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
             }
         }
     }
+
+    // v3 pinned the cabinet sentinels; before that they tracked the IR count.
+    if (version >= 1 && version <= 2)
+        remapLegacyCabinets(result.effects);
 
     // Parse chain order: absent or "default" = empty (default order)
     result.chainOrder.clear();

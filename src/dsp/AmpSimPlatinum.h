@@ -28,7 +28,7 @@ public:
     void setMaster(float value);        // 0-1
     void setSpeakerDrive(float value);  // 0-1
     void setGainMode(int mode);         // 0=GAIN1, 1=GAIN2
-    void setCabinetType(int type);      // 0-kNumCabinets (14=no cab, 15=custom)
+    void setCabinetType(int type);      // 0-13, kNoCabinet or kCustomCabinet
     void loadCustomIR(const juce::File& irFile);
     void setMicPosition(float value);   // 0-1
     void setCabTrim(float dB);          // -12 to +12
@@ -44,6 +44,11 @@ public:
     // Maps a pre-v2 preset master (flat multiplier) to the knob position that
     // produces the same drive under the VR12 pot law. Used on preset load.
     static float remapLegacyMaster(float oldLinear);
+
+    // Lifts a pre-v3 cabinetType (sentinels were 14/15) onto the pinned values.
+    // Used on state load and by the offline --cabinet flag, which kept the old
+    // encoding. Factory indices pass through untouched.
+    static int remapLegacyCabinet(int stored);
 
     float getGain()         const { return gainParam; }
     float getOvLevel()      const { return ovLevelParam; }
@@ -79,9 +84,13 @@ public:
     bool setDiagnostic(const juce::String& key, float value);
 #endif
 
+    // The sentinels are pinned, not derived from kNumCabinets: cabinetType is
+    // persisted as a raw int, so adding factory IRs must not shift them.
     static constexpr int kNumCabinets   = 14;
-    static constexpr int kNoCabinet     = kNumCabinets;        // index 14
-    static constexpr int kCustomCabinet = kNumCabinets + 1;    // index 15
+    static constexpr int kNoCabinet     = 200;   // bypass convolution
+    static constexpr int kCustomCabinet = 201;
+    static_assert(kNumCabinets < kNoCabinet, "factory IRs have grown into the sentinel range");
+
     static const char* getCabinetName(int index);
     juce::File getCustomIRFile() const { return customIRFile; }
 

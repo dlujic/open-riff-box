@@ -335,8 +335,7 @@ void AmpSimGoldPanel::syncFromDsp()
         auto irName = ampSimGoldRef.getCustomIRFile().getFileNameWithoutExtension();
         int customId = AmpSimGold::kCustomCabinet + 1;
 
-        // 14 IRs + No Cabinet = 15 built-in items
-        if (cabinetSelector.getNumItems() <= AmpSimGold::kNumCabinets + 1)
+        if (cabinetSelector.indexOfItemId(customId) < 0)
             cabinetSelector.addItem("Custom: " + irName, customId);
         else
             cabinetSelector.changeItemText(customId, "Custom: " + irName);

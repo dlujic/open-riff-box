@@ -144,6 +144,13 @@ static void computeLevelShelfCoeffs(float levelKnob, double oversampledRate,
 //==============================================================================
 // Cabinet names
 //==============================================================================
+
+// Cabinet sentinels before they were pinned -- derived from the IR count, so
+// they shifted whenever a factory IR was added. Frozen history; see
+// AmpSimPlatinum::remapLegacyCabinet.
+static constexpr int kLegacyNoCabinet     = 14;
+static constexpr int kLegacyCustomCabinet = 15;
+
 static const char* cabinetNamesPlatinum[AmpSimPlatinum::kNumCabinets] = {
     "Studio 57",
     "In Your Face",
@@ -1488,7 +1495,20 @@ void AmpSimPlatinum::setGainMode(int mode)
 
 void AmpSimPlatinum::setCabinetType(int type)
 {
-    cabinetTypeParam.store(juce::jlimit(0, kCustomCabinet, type), std::memory_order_release);
+    // The sentinels sit far above the factory range, so a clamp would wave
+    // through anything in between -- test membership and fall back to IR 0.
+    const bool valid = (type >= 0 && type < kNumCabinets)
+                       || type == kNoCabinet
+                       || type == kCustomCabinet;
+
+    cabinetTypeParam.store(valid ? type : 0, std::memory_order_release);
+}
+
+int AmpSimPlatinum::remapLegacyCabinet(int stored)
+{
+    if (stored == kLegacyNoCabinet)     return kNoCabinet;
+    if (stored == kLegacyCustomCabinet) return kCustomCabinet;
+    return stored;
 }
 
 void AmpSimPlatinum::loadCustomIR(const juce::File& irFile)

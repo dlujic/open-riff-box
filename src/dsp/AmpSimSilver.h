@@ -24,7 +24,7 @@ public:
     void setTreble(float value);         // 0-1
     void setPreampBoost(bool on);
     void setSpeakerDrive(float value);   // 0-1
-    void setCabinetType(int type);       // 0-kNumCabinets (10 = custom)
+    void setCabinetType(int type);       // 0-13, kNoCabinet or kCustomCabinet
     void loadCustomIR(const juce::File& irFile);  // message thread only
     void setBrightness(float value);     // 0-1
     void setMicPosition(float value);    // 0-1
@@ -49,10 +49,18 @@ public:
     float getMicPosition()  const { return micPositionParam; }
     float getCabTrim()      const { return cabTrimDb; }
 
-    static constexpr int kNumCabinets = 14;
-    static constexpr int kNoCabinet = kNumCabinets;      // index 14 (bypass convolution)
-    static constexpr int kCustomCabinet = kNumCabinets + 1;  // index 15
+    // The sentinels are pinned, not derived from kNumCabinets: cabinetType is
+    // persisted as a raw int, so adding factory IRs must not shift them.
+    static constexpr int kNumCabinets   = 14;
+    static constexpr int kNoCabinet     = 200;   // bypass convolution
+    static constexpr int kCustomCabinet = 201;
+    static_assert(kNumCabinets < kNoCabinet, "factory IRs have grown into the sentinel range");
+
     static const char* getCabinetName(int index);
+
+    // Lifts a pre-v3 cabinetType (sentinels were 14/15) onto the pinned values.
+    // Used on state load. Factory indices pass through untouched.
+    static int remapLegacyCabinet(int stored);
     juce::File getCustomIRFile() const { return customIRFile; }
 
 private:

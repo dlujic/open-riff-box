@@ -3,6 +3,12 @@
 
 #include <cmath>
 
+// Cabinet sentinels before they were pinned -- derived from the IR count, so
+// they shifted whenever a factory IR was added. Frozen history; see
+// AmpSimSilver::remapLegacyCabinet.
+static constexpr int kLegacyNoCabinet     = 14;
+static constexpr int kLegacyCustomCabinet = 15;
+
 static const char* cabinetNames[AmpSimSilver::kNumCabinets] = {
     "Studio 57",
     "In Your Face",
@@ -371,7 +377,24 @@ void AmpSimSilver::setMid(float value)          { midParam = juce::jlimit(0.0f, 
 void AmpSimSilver::setTreble(float value)       { trebleParam = juce::jlimit(0.0f, 1.0f, value); }
 void AmpSimSilver::setPreampBoost(bool on)      { preampBoostParam.store(on, std::memory_order_release); }
 void AmpSimSilver::setSpeakerDrive(float value) { speakerDriveParam = juce::jlimit(0.0f, 1.0f, value); }
-void AmpSimSilver::setCabinetType(int type)     { cabinetTypeParam.store(juce::jlimit(0, kCustomCabinet, type), std::memory_order_release); }
+
+void AmpSimSilver::setCabinetType(int type)
+{
+    // The sentinels sit far above the factory range, so a clamp would wave
+    // through anything in between -- test membership and fall back to IR 0.
+    const bool valid = (type >= 0 && type < kNumCabinets)
+                       || type == kNoCabinet
+                       || type == kCustomCabinet;
+
+    cabinetTypeParam.store(valid ? type : 0, std::memory_order_release);
+}
+
+int AmpSimSilver::remapLegacyCabinet(int stored)
+{
+    if (stored == kLegacyNoCabinet)     return kNoCabinet;
+    if (stored == kLegacyCustomCabinet) return kCustomCabinet;
+    return stored;
+}
 
 void AmpSimSilver::loadCustomIR(const juce::File& irFile)
 {
