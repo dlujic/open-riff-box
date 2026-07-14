@@ -60,7 +60,14 @@ Preset capture(OpenRiffBoxProcessor& processor)
             { "bypassed",   wah->isBypassed() },
             { "position",   wah->getPosition() },
             { "coloration", wah->getColoration() },
-            { "taperMode",  wah->getTaperMode() }
+            { "taperMode",  wah->getTaperMode() },
+            { "mode",       wah->getMode() },
+            { "autoWave",   wah->getAutoWave() },
+            { "autoRate",   wah->getAutoRate() },
+            { "autoDepth",  wah->getAutoDepth() },
+            { "envSens",    wah->getEnvSens() },
+            { "envAttack",  wah->getEnvAttack() },
+            { "envRelease", wah->getEnvRelease() }
         });
     }
 
@@ -377,6 +384,13 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
                 wah->setPosition(getDouble(v, "position", 0.5));
                 wah->setColoration(getBool(v, "coloration", false));
                 wah->setTaperMode(getInt(v, "taperMode", 0));
+                wah->setMode      (getInt   (v, "mode",       0));
+                wah->setAutoWave  (getInt   (v, "autoWave",   0));
+                wah->setAutoRate  (getDouble(v, "autoRate",   0.45));
+                wah->setAutoDepth (getDouble(v, "autoDepth",  0.5));
+                wah->setEnvSens   (getDouble(v, "envSens",    0.5));
+                wah->setEnvAttack (getDouble(v, "envAttack",  0.43));
+                wah->setEnvRelease(getDouble(v, "envRelease", 0.52));
             }
         }
         else

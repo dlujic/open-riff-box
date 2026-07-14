@@ -65,6 +65,55 @@ Cuts signal below a threshold to eliminate hum, buzz, and noise between playing.
 
 ---
 
+## Wah
+
+GCB-95-style circuit model -- the Cry Baby. A single resonant bandpass with a sharp, high-Q peak that rides up and down the spectrum, plus the inductor-driven gain lift the real circuit has (roughly +19 dB at the peak). The filter's frequency, resonance and gain all move together along a curve baked from a full circuit simulation of the pedal, so it tracks the real thing rather than being a generic sweeping filter.
+
+What sweeps the filter is up to you. Manual is the classic foot pedal: Position *is* the treadle. Auto hands the sweep to an LFO. Envelope hands it to your picking hand -- dig in and the filter jumps.
+
+Toe (0%) is bright and high, heel (100%) is dark and low. That is the pedal's real geometry, and it matters in Envelope mode: a hard pick attack drives the filter **toward the toe**, so the knob sets the dark end you start from and the attack sweeps up and away from it.
+
+### Parameters
+
+| Parameter | Range | Default | Description |
+|-----------|-------|---------|-------------|
+| Position | 0-100% | **50%** | Where the resonant peak sits. Toe (0%) is bright, heel (100%) is dark. Its role changes with Mode -- the panel relabels it: **Position** (a fixed point), **Center** (the point Auto sweeps around), **Rest** (the point Envelope departs from). |
+| Mode | Manual / Auto / Envelope | **Manual** | What drives the sweep (see below). |
+| Wave | Sine / Triangle | **Sine** | Auto mode only. Sine is a smooth, rounded sweep; Triangle is linear travel with sharper turnarounds. |
+| Rate | 0.1-10 Hz | **2.1 Hz** | Auto mode only. Sweep speed. |
+| Depth | 0-100% | **50%** | Auto mode only. How far the sweep travels either side of Center. At 100% it covers the full treadle range. |
+| Sens | 0-100% | **50%** | Envelope mode only. How hard a pick attack pushes the filter away from Rest. |
+| Attack | 1-50 ms | **10 ms** | Envelope mode only. How quickly the filter chases a rising pick attack. |
+| Release | 20-500 ms | **150 ms** | Envelope mode only. How quickly it falls back toward Rest as the note decays. |
+| Color | Off / On | **Off** | A thin, asymmetric warmth when the resonant peak is pushed hard. Off by default -- the real circuit is close to linear at guitar levels. |
+| Taper | Dead Zones / Linear | **Dead Zones** | How the knob maps onto the pot (see below). |
+
+### Modes
+
+- **Manual** -- Position sets a fixed filter point and leaves it there. This is a wah parked at one spot on the treadle, which is a sound in its own right (that cocked, nasal midrange honk you hear all over funk and 70s rock) as much as it is a starting point for automating the knob from a host.
+
+- **Auto** -- An LFO sweeps the filter around Center at Rate, travelling Depth either side of it. Set Center where you want the sweep to live, then Depth for how far it roams. Wave picks the shape: Sine turns around smoothly, Triangle runs at constant speed and snaps at the ends.
+
+- **Envelope** -- Your picking hand drives the sweep. The detector listens to the input (through a 120 Hz high-pass, so low notes don't pump it), and a pick attack pulls the filter up and away from Rest, falling back as the note decays. Sens sets how far, Attack how fast it chases, Release how fast it lets go.
+
+### Taper
+
+- **Dead Zones** (default) -- Models the mechanical dead travel of the real pedal: roughly 15-20% at each end of the treadle never actually rotates the pot. Toe, middle and heel land near 1520 / 760 / 450 Hz. This is what a real Cry Baby feels like under your foot, and it keeps the extremes from being uselessly thin or muddy.
+
+- **Linear** -- The raw electrical sweep, edge to edge: 2200 Hz at the toe down to 410 Hz at the heel. Wider, and more useful when you're automating Position from a host or want the full range out of the Auto LFO.
+
+### Tips
+
+- **The parked wah:** Manual mode, Position 30-45%, in front of the drive stages. That fixed midrange peak is the whole trick -- it gives a solo a vocal, cutting quality without any pedal motion at all.
+- **Where to put it:** Before the drives (its default slot) the filter shapes what the distortion *sees*, which is the classic pedalboard order and gives the aggressive, vocal wah everyone knows. It is a very different animal after the amp -- smoother, more like a filter sweep over a finished tone.
+- **Auto that breathes:** Center 50%, Depth 40-60%, Rate 1-3 Hz. Push Depth to 100% and Rate above 5 Hz and it stops being a wah and becomes an effect -- fun, but a different instrument.
+- **Envelope needs your level:** How much sweep you get depends on how hot your guitar hits the input, not just on Sens. If the filter barely twitches, turn Sens up. If every note slams straight to the top of the sweep and sits there, turn it down. Dial it in on the loudest thing you actually play, then check it still responds to a soft note.
+- **Envelope timing:** Short Attack (5-15 ms) catches the pick transient and gives the quack. Longer Attack (30-50 ms) lets the pick through and swells behind it. Release around 100-200 ms feels natural on single notes; push it longer for chords so the filter doesn't drop out between strums.
+- **Rest position matters:** In Envelope mode you are sweeping *away* from Rest. Park Rest fairly dark (60-80%) and you get the full upward jump on an attack. Park it bright and there is nowhere left to go.
+- **Color:** Leave it off unless you want it. The GCB-95 is close to linear at guitar levels, so this is a flavour knob, not a fidelity one -- a little asymmetric grit on the resonant peak when you push it.
+
+---
+
 ## Diode Drive
 
 TS808-style circuit model. Uses Newton-Raphson iterative solving of the actual op-amp + feedback diode clipping circuit, including a feedback capacitor that rolls off treble at higher drive settings (just like the real pedal).

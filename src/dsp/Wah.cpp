@@ -43,6 +43,19 @@ namespace
     {
         return (std::tanh(kColorDrive * (x + kColorBias)) - kColorBiasTerm) / kColorDrive;
     }
+
+    // jlimit does NOT clamp NaN -- every comparison against NaN is false, so it falls straight
+    // through both branches (it does clamp +/-Inf correctly). A NaN parameter reaches
+    // coeffsFor(), and a NaN coefficient poisons the SVF's persistent s1/s2 registers
+    // PERMANENTLY: NaN is sticky through the recurrence, so it never washes out, and it spills
+    // into every effect downstream in the chain. Only reset() clears it. The audio-sample path
+    // is already guarded at the detector input; this closes the same hole on the parameter
+    // path. A non-finite write is refused, leaving the parameter at its last good value.
+    inline void storeParam01(std::atomic<float>& param, float value)
+    {
+        if (std::isfinite(value))
+            param.store(juce::jlimit(0.0f, 1.0f, value), std::memory_order_release);
+    }
 }
 
 Wah::Wah()
@@ -63,11 +76,34 @@ void Wah::prepare(double sampleRate, int samplesPerBlock)
     oversampling->initProcessing(static_cast<size_t>(samplesPerBlock));
     oversampling->reset();
 
+    const float pos = getPosition();
+
     positionSmoothed.reset(sampleRate, 0.012);
-    positionSmoothed.setCurrentAndTargetValue(positionParam);
+    positionSmoothed.setCurrentAndTargetValue(pos);
     prevColorationOn = colorationOn.load(std::memory_order_acquire);
 
     colorDcR = 1.0f - 2.0f * juce::MathConstants<float>::pi * 10.0f / static_cast<float>(sampleRate);
+
+    lfoPhase = 0.0f;
+    envelope = 0.0f;
+    lastCtrl = pos;
+    prevMode = modeParam.load(std::memory_order_acquire);
+    prevWave = autoWaveParam.load(std::memory_order_acquire);
+
+    // Envelope sidechain HPF: kills LF pump so low notes don't ride the envelope
+    // (mirrors NoiseGate's sidechainHPF idiom).
+    juce::dsp::ProcessSpec monoSpec;
+    monoSpec.sampleRate       = sampleRate;
+    monoSpec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    monoSpec.numChannels      = 1;
+
+    for (auto& hpf : envHpf)
+    {
+        *hpf.coefficients = *juce::dsp::IIR::Coefficients<float>::makeHighPass(sampleRate, 120.0f);
+        hpf.prepare(monoSpec);
+    }
+
+    prevCoeffs = coeffsFor(pos);
 }
 
 void Wah::reset()
@@ -78,8 +114,28 @@ void Wah::reset()
     colorDc[1] = {};
 
     oversampling->reset();
-    positionSmoothed.reset(currentSampleRate, 0.012);
     prevColorationOn = colorationOn.load(std::memory_order_acquire);
+
+    const float pos = getPosition();
+
+    // SmoothedValue::reset collapses the current value onto the value that was ALREADY the
+    // target, so it has to be re-anchored to the live position -- otherwise prevCoeffs (seeded
+    // from the live position below) and the smoother start from two different places. Reachable:
+    // EffectChain calls reset() on the bypass-off edge, so parking Position while bypassed and
+    // then re-enabling lands here with a stale target. prepare() already does this.
+    positionSmoothed.reset(currentSampleRate, 0.012);
+    positionSmoothed.setCurrentAndTargetValue(pos);
+
+    lfoPhase = 0.0f;
+    envelope = 0.0f;
+    lastCtrl = pos;
+    prevMode = modeParam.load(std::memory_order_acquire);
+    prevWave = autoWaveParam.load(std::memory_order_acquire);
+
+    envHpf[0].reset();
+    envHpf[1].reset();
+
+    prevCoeffs = coeffsFor(pos);
 }
 
 int Wah::getLatencySamples() const
@@ -96,39 +152,115 @@ void Wah::process(juce::AudioBuffer<float>& buffer)
     const int numChannels = buffer.getNumChannels();
     if (numSamples == 0 || numChannels == 0) return;
 
-    positionSmoothed.setTargetValue(positionParam);
+    const int mode = modeParam.load(std::memory_order_acquire);
+    const int wave = autoWaveParam.load(std::memory_order_acquire);
+
+    // A mode switch restarts the modulator; seeding the smoother with the control value we
+    // last used keeps the handover continuous, since every modulator contributes zero at its
+    // start (LFO phase 0, envelope 0). The waveform only feeds the LFO, so only a change to
+    // it *while in Auto* counts -- a preset recall carries autoWave in every mode, and
+    // firing this in Envelope would stomp a live follower.
+    if (mode != prevMode || (mode == static_cast<int>(Mode::Auto) && wave != prevWave))
+    {
+        positionSmoothed.setCurrentAndTargetValue(lastCtrl);
+        lfoPhase = 0.0f;
+        envelope = 0.0f;
+        envHpf[0].reset();
+        envHpf[1].reset();
+    }
+
+    positionSmoothed.setTargetValue(getPosition());
 
     const float fs = static_cast<float>(currentSampleRate);
+
+    // Snapshot each control-source parameter once per block -- they are written from the
+    // message thread, and re-reading mid-block would let a knob move split a single buffer.
+    const float rateHz   = autoRateToHz(getAutoRate());
+    const float depth    = getAutoDepth();
+    const float envGain  = envSensToGain(getEnvSens());
+    const float attCoeff = std::exp(-1.0f / (envAttackToSec (getEnvAttack())  * fs));
+    const float relCoeff = std::exp(-1.0f / (envReleaseToSec(getEnvRelease()) * fs));
 
     int i = 0;
     while (i < numSamples)
     {
         const int chunkLen = juce::jmin(kControlBlockSize, numSamples - i);
 
-        const float ctrl = positionSmoothed.getNextValue();
+        // The detector needs the dry input; the SVF below overwrites the buffer in place.
+        if (mode == static_cast<int>(Mode::Envelope))
+        {
+            const int detChannels = juce::jmin(numChannels, 2);
+            const float* detPtr[2] = { buffer.getReadPointer(0),
+                                        detChannels > 1 ? buffer.getReadPointer(1)
+                                                         : buffer.getReadPointer(0) };
+
+            for (int n = 0; n < chunkLen; ++n)
+            {
+                float det = 0.0f;
+                for (int ch = 0; ch < detChannels; ++ch)
+                {
+                    // An inf from upstream makes the follower's own recurrence produce NaN
+                    // (inf + -inf), and NaN passes straight through jlimit into the curve
+                    // table index. Nothing non-finite gets past here.
+                    const float x = detPtr[ch][i + n];
+                    det = juce::jmax(det, std::abs(envHpf[ch].processSample(
+                                              std::isfinite(x) ? x : 0.0f)));
+                }
+
+                const float c = (det > envelope) ? attCoeff : relCoeff;
+                envelope = det + (envelope - det) * c;
+            }
+        }
+
+        const float centre = positionSmoothed.getNextValue();
         positionSmoothed.skip(chunkLen - 1);
 
-        const float p = positionToWiper(ctrl);
-        float fc = 0.0f, Q = 0.0f, gainDb = 0.0f;
-        lookupCurves(p, fc, Q, gainDb);
-        fc = juce::jlimit(20.0f, 0.45f * fs, fc);
+        float ctrl = centre;
+        if (mode == static_cast<int>(Mode::Auto))
+        {
+            const float lfo = (wave == static_cast<int>(AutoWave::Triangle))
+                                ? 1.0f - 4.0f * std::abs(std::fmod(lfoPhase + 0.25f, 1.0f) - 0.5f)
+                                : std::sin(juce::MathConstants<float>::twoPi * lfoPhase);
 
-        // ZDF/TPT resonant bandpass -- tan-prewarped cutoff, R = 1/(2Q) damping.
-        // scale normalizes the bandpass's natural Q-peak to unity, then sets the
-        // target gain: get this wrong (miss the /Q) and the peak overshoots by ~Q.
-        const float g      = std::tan(juce::MathConstants<float>::pi * fc / fs);
-        const float twoR   = 1.0f / Q;
-        const float den    = 1.0f + twoR * g + g * g;
-        const float aHP    = 1.0f / den;
-        const float coefFB = twoR + g;
-        const float scale  = std::pow(10.0f, gainDb / 20.0f) / Q;
+            ctrl = juce::jlimit(0.0f, 1.0f, centre + 0.5f * depth * lfo);
+
+            lfoPhase += rateHz * static_cast<float>(chunkLen) / fs;
+            if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
+        }
+        else if (mode == static_cast<int>(Mode::Envelope))
+        {
+            // Position 0 is the toe (bright, 2.2 kHz); a pick attack has to pull the control
+            // DOWN to sweep the filter up. The knob is the resting/dark end of the sweep.
+            ctrl = juce::jlimit(0.0f, 1.0f, centre - envGain * envelope);
+        }
+        lastCtrl = ctrl;
+
+        const SvfCoeffs target = coeffsFor(ctrl);
+
+        // Ramp to the target across the block instead of stepping at the boundary. A 1 ms
+        // envelope attack can slam the control from centre to the rail inside a single block,
+        // and scale is a direct output multiplier -- a step there is a click, not a sweep.
+        // At a static position target == prevCoeffs, so every delta is exactly 0 and this is
+        // bit-identical to holding the coefficients (the Manual regression anchor).
+        const float inv    = 1.0f / static_cast<float>(chunkLen);
+        const float dG     = (target.g      - prevCoeffs.g)      * inv;
+        const float dAHP   = (target.aHP    - prevCoeffs.aHP)    * inv;
+        const float dFB    = (target.coefFB - prevCoeffs.coefFB) * inv;
+        const float dScale = (target.scale  - prevCoeffs.scale)  * inv;
 
         for (int ch = 0; ch < juce::jmin(numChannels, 2); ++ch)
         {
             auto* samples = buffer.getWritePointer(ch);
 
+            float g      = prevCoeffs.g;
+            float aHP    = prevCoeffs.aHP;
+            float coefFB = prevCoeffs.coefFB;
+            float scale  = prevCoeffs.scale;
+
             for (int n = 0; n < chunkLen; ++n)
             {
+                g += dG; aHP += dAHP; coefFB += dFB; scale += dScale;
+
                 const float x  = samples[i + n];
                 const float hp = (x - coefFB * s1[ch] - s2[ch]) * aHP;
                 const float bp = g * hp + s1[ch];
@@ -138,6 +270,8 @@ void Wah::process(juce::AudioBuffer<float>& buffer)
                 samples[i + n] = bp * scale;
             }
         }
+
+        prevCoeffs = target;
 
         i += chunkLen;
     }
@@ -186,6 +320,8 @@ void Wah::process(juce::AudioBuffer<float>& buffer)
             }
         }
     }
+    prevMode = mode;
+    prevWave = wave;
     prevColorationOn = colorOn;
 }
 
@@ -194,11 +330,26 @@ void Wah::resetToDefaults()
     setPosition(0.5f);
     setColoration(false);
     setTaperMode(0);
+    setMode(0);
+    setAutoWave(0);
+    setAutoRate(0.45f);
+    setAutoDepth(0.5f);
+    setEnvSens(0.5f);
+    setEnvAttack(0.43f);
+    setEnvRelease(0.52f);
 }
 
-void Wah::setPosition(float value)   { positionParam = juce::jlimit(0.0f, 1.0f, value); }
+void Wah::setPosition(float value)   { storeParam01(positionParam, value); }
 void Wah::setColoration(bool on)     { colorationOn.store(on, std::memory_order_release); }
 void Wah::setTaperMode(int mode)     { taperMode.store(juce::jlimit(0, 1, mode), std::memory_order_release); }
+
+void Wah::setMode(int value)         { modeParam.store(juce::jlimit(0, 2, value), std::memory_order_release); }
+void Wah::setAutoWave(int value)     { autoWaveParam.store(juce::jlimit(0, 1, value), std::memory_order_release); }
+void Wah::setAutoRate(float value)   { storeParam01(autoRateParam,   value); }
+void Wah::setAutoDepth(float value)  { storeParam01(autoDepthParam,  value); }
+void Wah::setEnvSens(float value)    { storeParam01(envSensParam,    value); }
+void Wah::setEnvAttack(float value)  { storeParam01(envAttackParam,  value); }
+void Wah::setEnvRelease(float value) { storeParam01(envReleaseParam, value); }
 
 float Wah::positionToWiper(float position) const
 {
@@ -216,8 +367,9 @@ void Wah::lookupCurves(float p, float& fc, float& Q, float& gainDb)
 {
     p = juce::jlimit(0.0f, 1.0f, p);
     const float fp = p * static_cast<float>(kNumCurvePoints - 1);   // 0..32
-    int   i0   = static_cast<int>(fp);
-    if (i0 > kNumCurvePoints - 2) i0 = kNumCurvePoints - 2;
+    // Clamp both ends. A non-finite p casts to INT_MIN, which a top-only clamp waves through
+    // and which then indexes gigabytes below the table.
+    const int   i0   = juce::jlimit(0, kNumCurvePoints - 2, static_cast<int>(fp));
     const int   i1   = i0 + 1;
     const float frac = fp - static_cast<float>(i0);
 
@@ -226,4 +378,26 @@ void Wah::lookupCurves(float p, float& fc, float& Q, float& gainDb)
     fc     = kWahFc[i0] * std::pow(kWahFc[i1] / kWahFc[i0], frac);
     Q      = kWahQ[i0]     + frac * (kWahQ[i1]     - kWahQ[i0]);
     gainDb = kWahGainDb[i0] + frac * (kWahGainDb[i1] - kWahGainDb[i0]);
+}
+
+Wah::SvfCoeffs Wah::coeffsFor(float ctrl) const
+{
+    const float fs = static_cast<float>(currentSampleRate);
+
+    const float p = positionToWiper(ctrl);
+    float fc = 0.0f, Q = 0.0f, gainDb = 0.0f;
+    lookupCurves(p, fc, Q, gainDb);
+    fc = juce::jlimit(20.0f, 0.45f * fs, fc);
+
+    // ZDF/TPT resonant bandpass -- tan-prewarped cutoff, R = 1/(2Q) damping.
+    // scale normalizes the bandpass's natural Q-peak to unity, then sets the
+    // target gain: get this wrong (miss the /Q) and the peak overshoots by ~Q.
+    SvfCoeffs c;
+    c.g              = std::tan(juce::MathConstants<float>::pi * fc / fs);
+    const float twoR = 1.0f / Q;
+    const float den  = 1.0f + twoR * c.g + c.g * c.g;
+    c.aHP    = 1.0f / den;
+    c.coefFB = twoR + c.g;
+    c.scale  = std::pow(10.0f, gainDb / 20.0f) / Q;
+    return c;
 }

@@ -86,12 +86,12 @@ openriffbox/
 
 --
 
-## Current State (v0.8.4)
+## Current State (v0.8.5)
 
 17 effects across 10 slots, all implemented:
 
 - **Compressor** -- feedforward log-domain design, 3 modes: Studio (transparent VCA, program-dependent release), Squeeze (high-ratio Dyna Comp squash), Opto (LA-2A-style two-stage release). Parallel blend, auto makeup, gain reduction meter.
-- **Wah** -- GCB-95-style circuit model: single resonant bandpass with pot-taper dead zones, switchable input coloration
+- **Wah** -- GCB-95-style circuit model: single resonant bandpass with pot-taper dead zones, switchable input coloration. 3 control modes: Manual (fixed/automatable position), Auto (LFO sweep, sine or triangle), Envelope (pick-attack follower with sens/attack/release)
 - **Diode Drive** -- TS808-style circuit model with Newton-Raphson solver
 - **Distortion** -- 4 modes (Overdrive, Tube Drive, Distortion, Metal)
 - **Amp Sim** -- 3 engines:
@@ -114,9 +114,6 @@ Additional features: built-in tuner, built-in metronome (standalone only; woodbl
 --
 
 ## What's Next (in no specific order)
-
-### More Effects
-- **Wah modes** -- auto-wah, envelope filter, alternate manual tapers on top of the shipped circuit model
 
 ### Sound Quality
 - Platinum Normal channel polish -- grid-conduction clamp for noise at high LEVEL settings, channel level matching (factory preset levels recalibrate afterwards)

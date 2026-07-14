@@ -218,6 +218,13 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("position",   wah->getPosition());
         e->setAttribute("coloration", wah->getColoration());
         e->setAttribute("taperMode",  wah->getTaperMode());
+        e->setAttribute("mode",       wah->getMode());
+        e->setAttribute("autoWave",   wah->getAutoWave());
+        e->setAttribute("autoRate",   wah->getAutoRate());
+        e->setAttribute("autoDepth",  wah->getAutoDepth());
+        e->setAttribute("envSens",    wah->getEnvSens());
+        e->setAttribute("envAttack",  wah->getEnvAttack());
+        e->setAttribute("envRelease", wah->getEnvRelease());
     }
 
     // Name-based lookup - position-independent
@@ -490,6 +497,13 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             wah->setPosition(static_cast<float>(wahXml->getDoubleAttribute("position", 0.5)));
             wah->setColoration(wahXml->getBoolAttribute("coloration", false));
             wah->setTaperMode(wahXml->getIntAttribute("taperMode", 0));
+            wah->setMode(wahXml->getIntAttribute("mode", 0));
+            wah->setAutoWave(wahXml->getIntAttribute("autoWave", 0));
+            wah->setAutoRate(static_cast<float>(wahXml->getDoubleAttribute("autoRate", 0.45)));
+            wah->setAutoDepth(static_cast<float>(wahXml->getDoubleAttribute("autoDepth", 0.5)));
+            wah->setEnvSens(static_cast<float>(wahXml->getDoubleAttribute("envSens", 0.5)));
+            wah->setEnvAttack(static_cast<float>(wahXml->getDoubleAttribute("envAttack", 0.43)));
+            wah->setEnvRelease(static_cast<float>(wahXml->getDoubleAttribute("envRelease", 0.52)));
         }
     }
 
