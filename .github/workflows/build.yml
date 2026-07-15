@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, xplat-port ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }} ${{ matrix.flavor }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, macos-latest, ubuntu-latest ]
+        flavor: [ ship, tools ]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libx11-dev \
+            libxrandr-dev libxinerama-dev libxcursor-dev libfreetype-dev \
+            libfontconfig1-dev
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -DORB_OFFLINE_TOOLS=${{ matrix.flavor == 'tools' && 'ON' || 'OFF' }}
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: >
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          "-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+          -DORB_OFFLINE_TOOLS=${{ matrix.flavor == 'tools' && 'ON' || 'OFF' }}
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DORB_OFFLINE_TOOLS=${{ matrix.flavor == 'tools' && 'ON' || 'OFF' }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows' && matrix.flavor == 'ship'
+        shell: pwsh
+        run: Compress-Archive -Path build/dist/OpenRiffBox -DestinationPath OpenRiffBox-windows-x64.zip
+
+      - name: Package (macOS / Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          # upload-artifact zips strip unix exec bits and symlinks, so tar first
+          os=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
+          app="Standalone/OpenRiffBox.app"
+          if [ "$os" = "linux" ]; then app="Standalone/OpenRiffBox"; fi
+          tar -czf "OpenRiffBox-$os-${{ matrix.flavor }}.tar.gz" \
+            -C build/OpenRiffBox_artefacts/Release "$app" VST3/OpenRiffBox.vst3
+
+      - name: Upload (Windows)
+        if: runner.os == 'Windows' && matrix.flavor == 'ship'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRiffBox-windows-x64
+          path: OpenRiffBox-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Upload (macOS / Linux)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenRiffBox-${{ runner.os == 'macOS' && 'macos' || 'linux' }}-${{ matrix.flavor }}
+          path: OpenRiffBox-*.tar.gz
+          if-no-files-found: error
