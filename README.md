@@ -49,6 +49,7 @@ and labeled **beta** -- lightly tested, reports welcome. If you play on either, 
    - open it once, then go to **System Settings -> Privacy & Security**, scroll down and click **"Open Anyway"** (on older macOS: right-click the app -> **Open** -> **Open**), or
    - in Terminal: `xattr -cr /path/to/OpenRiffBox.app`
 3. Launch `OpenRiffBox.app` and pick your interface in **Settings**
+4. Allow **Microphone** access when macOS asks -- that permission covers all audio input, including guitar interfaces. Declined it? **System Settings -> Privacy & Security -> Microphone**, enable OpenRiffBox, relaunch.
 
 **Requirements:** macOS 10.13+, Intel or Apple Silicon (one universal binary). User presets and settings live in `~/Library/Application Support/OpenRiffBox`.
 

@@ -27,6 +27,11 @@ juce_add_plugin(OpenRiffBox
     NEEDS_MIDI_OUTPUT       FALSE
     IS_MIDI_EFFECT          FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    # Without the usage-description key macOS never shows the mic permission
+    # prompt and CoreAudio feeds the standalone silence. Plist-only, no effect
+    # on Windows/Linux builds.
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT  "OpenRiffBox needs access to your audio input (guitar interface or microphone)."
     VST3_CATEGORIES         "Fx"
     ICON_BIG                "${CMAKE_SOURCE_DIR}/resources/icon_256.png"
     ICON_SMALL              "${CMAKE_SOURCE_DIR}/resources/icon_48.png"
