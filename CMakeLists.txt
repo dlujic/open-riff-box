@@ -141,6 +141,7 @@ target_compile_definitions(OpenRiffBox
         JUCE_ASIO=1
         JUCE_WASAPI=1
         JUCE_DIRECTSOUND=1
+        JUCE_JACK=1
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1
     PRIVATE
@@ -148,19 +149,31 @@ target_compile_definitions(OpenRiffBox
         $<IF:$<OR:$<CONFIG:Debug>,$<BOOL:${ORB_OFFLINE_TOOLS}>>,ORB_OFFLINE_TOOLS=1,ORB_OFFLINE_TOOLS=0>
 )
 
-# Post-build: assemble portable distribution folder
-set(DIST_DIR "${CMAKE_BINARY_DIR}/dist/OpenRiffBox")
-add_custom_command(TARGET OpenRiffBox_Standalone POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}/presets/factory"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}/presets/user"
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "$<TARGET_FILE:OpenRiffBox_Standalone>"
-        "${DIST_DIR}/OpenRiffBox.exe"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/presets/factory"
-        "${DIST_DIR}/presets/factory"
-    COMMENT "Assembling portable distribution in ${DIST_DIR}"
-)
+# Post-build: assemble the shippable layout per platform
+if(APPLE)
+    # Factory presets ride inside the bundle (read-only); user presets are
+    # created under ~/Library/Application Support/OpenRiffBox at runtime.
+    add_custom_command(TARGET OpenRiffBox_Standalone POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/presets/factory"
+            "$<TARGET_BUNDLE_DIR:OpenRiffBox_Standalone>/Contents/Resources/presets/factory"
+        COMMENT "Embedding factory presets in OpenRiffBox.app"
+    )
+else()
+    # Windows/Linux: portable folder, binary and presets side by side
+    set(DIST_DIR "${CMAKE_BINARY_DIR}/dist/OpenRiffBox")
+    add_custom_command(TARGET OpenRiffBox_Standalone POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}/presets/factory"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${DIST_DIR}/presets/user"
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:OpenRiffBox_Standalone>"
+            "${DIST_DIR}/$<TARGET_FILE_NAME:OpenRiffBox_Standalone>"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/presets/factory"
+            "${DIST_DIR}/presets/factory"
+        COMMENT "Assembling portable distribution in ${DIST_DIR}"
+    )
+endif()
 
 target_link_libraries(OpenRiffBox
     PRIVATE
