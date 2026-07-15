@@ -109,6 +109,11 @@ bool PresetManager::savePresetAs(const juce::String& name, const juce::String& a
     preset.author = author;
     preset.date = juce::Time::getCurrentTime().formatted("%Y-%m-%d");
 
+    // The dir is created at startup, but may have failed there (or been removed
+    // since) - without this, replaceWithText fails silently and the preset is lost.
+    if (!userDir.isDirectory() && !userDir.createDirectory().wasOk())
+        return false;
+
     // Sanitize filename
     auto safeName = juce::File::createLegalFileName(name);
     auto file = userDir.getChildFile(safeName + ".json");
@@ -143,8 +148,10 @@ bool PresetManager::deletePreset(int index)
     if (preset.isFactory)
         return false;
 
-    if (preset.sourceFile.existsAsFile())
-        preset.sourceFile.deleteFile();
+    // Keep list and disk consistent: a failed delete must not drop the entry,
+    // or the file resurrects as a "new" preset on the next scan.
+    if (preset.sourceFile.existsAsFile() && !preset.sourceFile.deleteFile())
+        return false;
 
     // Update slot assignments that pointed to this or later presets
     for (int s = 0; s < numSlots; ++s)

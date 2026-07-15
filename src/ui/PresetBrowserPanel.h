@@ -42,6 +42,7 @@ private:
     juce::TextEditor saveAuthorEditor;
     juce::TextButton saveConfirmButton { "Save" };
     juce::TextButton saveCancelButton { "Cancel" };
+    juce::Label saveErrorLabel;
     bool saveDialogVisible = false;
 
     SettingsLookAndFeel settingsLF;

@@ -108,12 +108,24 @@ PresetBrowserPanel::PresetBrowserPanel(PresetManager& manager)
         if (name.isNotEmpty())
         {
             auto author = saveAuthorEditor.getText().trim();
-            presetManager.savePresetAs(name, author);
-            showSaveDialog(false);
-            refreshList();
+            if (presetManager.savePresetAs(name, author))
+            {
+                showSaveDialog(false);
+                refreshList();
+            }
+            else
+            {
+                // Keep the dialog (and the typed name) so the save isn't silently lost
+                saveErrorLabel.setVisible(true);
+            }
         }
     };
     addChildComponent(saveConfirmButton);
+
+    saveErrorLabel.setText("Save failed - preset folder is not writable", juce::dontSendNotification);
+    saveErrorLabel.setFont(Theme::Fonts::body());
+    saveErrorLabel.setColour(juce::Label::textColourId, Theme::Colours::distortion);
+    addChildComponent(saveErrorLabel);
 
     saveCancelButton.setLookAndFeel(&settingsLF);
     saveCancelButton.onClick = [this] { showSaveDialog(false); };
@@ -224,6 +236,8 @@ void PresetBrowserPanel::resized()
     saveConfirmButton.setBounds(saveBtnRow.removeFromLeft(80));
     saveBtnRow.removeFromLeft(8);
     saveCancelButton.setBounds(saveBtnRow.removeFromLeft(80));
+    saveArea.removeFromTop(gap);
+    saveErrorLabel.setBounds(saveArea.removeFromTop(20));
 }
 
 void PresetBrowserPanel::refreshList()
@@ -322,6 +336,7 @@ void PresetBrowserPanel::showSaveDialog(bool show)
     saveAuthorEditor.setVisible(show);
     saveConfirmButton.setVisible(show);
     saveCancelButton.setVisible(show);
+    saveErrorLabel.setVisible(false);
 
     if (show)
     {
