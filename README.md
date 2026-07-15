@@ -61,7 +61,7 @@ and labeled **beta** -- lightly tested, reports welcome. If you play on either, 
 
 **Requirements:** x86_64 with the usual desktop libraries (ALSA, X11, FreeType, fontconfig -- present on any stock desktop distro).
 
-The macOS and Linux downloads also contain a VST3 build of the same processor (beta, like the standalone).
+All three downloads also include a VST3 build of the same processor (less tested than the standalone).
 
 ## Signal Chain
 
