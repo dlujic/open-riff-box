@@ -104,8 +104,8 @@ See **[docs/effects.md](docs/effects.md)** for detailed parameter documentation 
 CMake 3.22+ and a C++17 compiler. JUCE 8 is included as a git submodule -- clone with `--recursive`.
 
 ```bash
-git clone --recursive https://github.com/dlujic/openriffbox.git
-cd openriffbox
+git clone --recursive https://github.com/dlujic/open-riff-box.git
+cd open-riff-box
 ```
 
 **Windows** (Visual Studio Build Tools, MSVC x64 + Windows SDK):
@@ -144,7 +144,7 @@ Output lands in `build/OpenRiffBox_artefacts/Release/Standalone/` (the portable 
 ## Project Structure
 
 ```
-openriffbox/
+open-riff-box/
 +-- src/
 |   +-- dsp/          # Effect processors (no UI dependencies)
 |   +-- ui/           # JUCE UI components

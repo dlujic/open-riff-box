@@ -72,7 +72,7 @@ Users can reorder effects freely via the chain list's reorder mode. Custom order
 ### Project Structure
 
 ```
-openriffbox/
+open-riff-box/
 +-- src/
 |   +-- dsp/          # Effect processors (no UI dependencies)
 |   +-- ui/           # JUCE UI components
