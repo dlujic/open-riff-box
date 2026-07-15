@@ -149,13 +149,6 @@ target_compile_definitions(OpenRiffBox
         # JACK must stay Linux-scoped: JUCE includes jack/jack.h on ANY platform
         # that defines it (the Windows-only backends above are internally OS-gated)
         $<$<PLATFORM_ID:Linux>:JUCE_JACK=1>
-        # XShm off: JUCE sizes the shared-memory image from the X server's
-        # bytes_per_line but keeps its own 32bpp lineStride for pixel access, so
-        # any server whose depth-24 pixmaps aren't 32bpp (WSLg/XWayland-RDP,
-        # xrdp, some VNC) gets a buffer overrun and SIGSEGV on first paint.
-        # The non-SHM path allocates with JUCE's own stride and lets XPutImage
-        # convert - correct against every server, one extra blit copy.
-        $<$<PLATFORM_ID:Linux>:JUCE_USE_XSHM=0>
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1
     PRIVATE
