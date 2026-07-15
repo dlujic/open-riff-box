@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(OpenRiffBox VERSION 0.8.5 LANGUAGES CXX)
+project(OpenRiffBox VERSION 0.8.5 LANGUAGES C CXX)
 
 option(ORB_OFFLINE_TOOLS "Enable offline file processor" OFF)
 
