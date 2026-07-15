@@ -18,7 +18,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macos-latest, ubuntu-latest ]
+        # ubuntu-22.04 pinned (not -latest): building against the older glibc keeps
+        # the linux binaries runnable on 22.04-era distros; newer systems are
+        # backward compatible.
+        os: [ windows-latest, macos-latest, ubuntu-22.04 ]
         # tools = ORB_OFFLINE_TOOLS render build. mac/linux tools artifacts feed the
         # offline validation kit; the windows one is built for compile coverage only
         # (local build-offline covers rendering there), hence no windows-tools upload.
@@ -59,7 +62,8 @@ jobs:
       - name: Package (Windows)
         if: runner.os == 'Windows' && matrix.flavor == 'ship'
         shell: pwsh
-        run: Compress-Archive -Path build/dist/OpenRiffBox -DestinationPath OpenRiffBox-windows-x64.zip
+        # VST3 rides next to the portable folder, same layout as the mac/linux tars
+        run: Compress-Archive -Path build/dist/OpenRiffBox, build/OpenRiffBox_artefacts/Release/VST3/OpenRiffBox.vst3 -DestinationPath OpenRiffBox-windows-x64.zip
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
