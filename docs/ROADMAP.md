@@ -8,11 +8,11 @@
 ## Tech Stack
 
 - **Framework:** JUCE 8 (C++17)
-- **Build:** CMake + MSVC, static CRT (`/MT`) -- zero runtime dependencies
-- **Audio:** ASIO primary, WASAPI/DirectSound fallback
-- **Distribution:** Portable `.zip` -- unzip anywhere, run. No installer, no registry, no admin rights.
-- **Config:** Stored next to `.exe` (portable mode). Falls back to `%APPDATA%/OpenRiffBox/` if exe directory is read-only.
-- **Requirements:** Windows 10/11 x64, audio interface with ASIO drivers recommended.
+- **Build:** CMake -- MSVC on Windows (static CRT `/MT`), Clang on macOS (universal x86_64 + arm64), GCC/Clang on Linux
+- **Audio:** ASIO/WASAPI/DirectSound on Windows, CoreAudio on macOS, ALSA + JACK on Linux
+- **Distribution:** Portable archives -- no installer, no registry, no admin rights. Windows `.zip`, macOS/Linux `.tar.gz` (beta)
+- **Config:** Windows/Linux: stored next to the binary (portable mode), OS config dir as fallback. macOS: `~/Library/Application Support/OpenRiffBox/`
+- **Requirements:** Windows 10/11 x64 (ASIO interface recommended) / macOS 10.13+ Intel or Apple Silicon / Linux x86_64
 
 --
 
@@ -34,7 +34,7 @@
 |  [Modulation Cho/Fla/Pha/Vib/Tre]->[EQ]      |
 +----------------------------------------------+
 |              Audio I/O Layer                   |
-|    (JUCE AudioDeviceManager, ASIO/WASAPI)     |
+|  (JUCE AudioDeviceManager, native audio APIs) |
 +----------------------------------------------+
 ```
 
@@ -111,6 +111,8 @@ openriffbox/
 
 Additional features: built-in tuner, built-in metronome (standalone only; woodblock click, tap tempo, time signatures), preset system (save/load, quick-access slots with persisted assignments, modified-preset indicator), 13 loudness-matched factory presets, reorderable signal chain, 14 cabinet IRs + custom IR loading, output limiter.
 
+Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (beta). Standalone + VST3 on all three.
+
 --
 
 ## What's Next (in no specific order)
@@ -148,7 +150,7 @@ Additional features: built-in tuner, built-in metronome (standalone only; woodbl
 ### Stretch Goals
 - Scaled UI (window resizes but UI elements don't scale yet)
 - NAM / AIDA-X model loading
-- Cross-platform builds (Mac, Linux)
+- macOS code signing / notarization (beta ships unsigned with Gatekeeper walkthrough)
 
 --
 
