@@ -25,7 +25,7 @@ public:
         {
             auto raw = button.getProperties()["ledColour"];
             if (!raw.isVoid())
-                ledColour = juce::Colour(static_cast<juce::uint32>((int64_t)raw));
+                ledColour = juce::Colour(static_cast<juce::uint32>(static_cast<juce::int64>(raw)));
         }
 
         // --- Button body (3D rounded rectangle) ---
