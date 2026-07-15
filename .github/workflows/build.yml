@@ -58,16 +58,27 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path build/dist/OpenRiffBox -DestinationPath OpenRiffBox-windows-x64.zip
 
-      - name: Package (macOS / Linux)
-        if: runner.os != 'Windows'
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           # upload-artifact zips strip unix exec bits and symlinks, so tar first
-          os=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
-          app="Standalone/OpenRiffBox.app"
-          if [ "$os" = "linux" ]; then app="Standalone/OpenRiffBox"; fi
-          tar -czf "OpenRiffBox-$os-${{ matrix.flavor }}.tar.gz" \
-            -C build/OpenRiffBox_artefacts/Release "$app" VST3/OpenRiffBox.vst3
+          mkdir stage
+          cp -R build/OpenRiffBox_artefacts/Release/Standalone/OpenRiffBox.app stage/
+          cp -R build/OpenRiffBox_artefacts/Release/VST3/OpenRiffBox.vst3 stage/
+          tar -czf "OpenRiffBox-macos${{ matrix.flavor == 'tools' && '-tools' || '' }}.tar.gz" \
+            -C stage OpenRiffBox.app OpenRiffBox.vst3
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # upload-artifact zips strip unix exec bits and symlinks, so tar first
+          mkdir stage
+          cp -r build/dist/OpenRiffBox stage/
+          cp -r build/OpenRiffBox_artefacts/Release/VST3/OpenRiffBox.vst3 stage/
+          tar -czf "OpenRiffBox-linux-x64${{ matrix.flavor == 'tools' && '-tools' || '' }}.tar.gz" \
+            -C stage OpenRiffBox OpenRiffBox.vst3
 
       - name: Upload (Windows)
         if: runner.os == 'Windows' && matrix.flavor == 'ship'
@@ -81,6 +92,6 @@ jobs:
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: OpenRiffBox-${{ runner.os == 'macOS' && 'macos' || 'linux' }}-${{ matrix.flavor }}
+          name: OpenRiffBox-${{ runner.os == 'macOS' && 'macos' || 'linux-x64' }}${{ matrix.flavor == 'tools' && '-tools' || '' }}
           path: OpenRiffBox-*.tar.gz
           if-no-files-found: error
