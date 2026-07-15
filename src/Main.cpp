@@ -197,7 +197,7 @@ public:
     OpenRiffBoxApplication() = default;
 
     const juce::String getApplicationName()    override { return "OpenRiffBox"; }
-    const juce::String getApplicationVersion() override { return "0.1.0"; }
+    const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
     bool moreThanOneInstanceAllowed()           override { return false; }
 
     void initialise(const juce::String& commandLine) override
@@ -219,6 +219,12 @@ public:
         options.osxLibrarySubFolder = "Application Support";
         options.folderName          = "OpenRiffBox";
 
+#if JUCE_MAC
+        // The exe dir is inside the .app bundle: writable only when unquarantined,
+        // read-only under App Translocation. Portable mode is a foot-gun there --
+        // always use ~/Library/Application Support/OpenRiffBox.
+        appProperties.setStorageParameters(options);
+#else
         // Portable mode: store settings next to the exe if the directory is writable.
         // Falls back to %APPDATA%/OpenRiffBox/ if not (e.g. installed in Program Files).
         auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
@@ -235,6 +241,7 @@ public:
             // Fall back to standard OS location
             appProperties.setStorageParameters(options);
         }
+#endif
 
         auto* settings = portableSettings ? portableSettings.get()
                                           : appProperties.getUserSettings();

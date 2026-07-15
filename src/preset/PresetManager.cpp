@@ -3,10 +3,11 @@
 #include "PluginProcessor.h"
 #include "dsp/EffectChain.h"
 
-PresetManager::PresetManager(OpenRiffBoxProcessor& proc, const juce::File& presetsRoot)
+PresetManager::PresetManager(OpenRiffBoxProcessor& proc,
+                             const juce::File& factoryPresetDir, const juce::File& userPresetDir)
     : processor(proc),
-      factoryDir(presetsRoot.getChildFile("factory")),
-      userDir(presetsRoot.getChildFile("user"))
+      factoryDir(factoryPresetDir),
+      userDir(userPresetDir)
 {
     if (!userDir.isDirectory())
         userDir.createDirectory();

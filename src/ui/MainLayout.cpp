@@ -170,6 +170,14 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     addChildComponent(*metronomePanel);
 
     // Preset system
+#if JUCE_MAC
+    // Factory presets ship inside the bundle; user presets need a writable dir,
+    // so they live next to the settings file in Application Support.
+    auto factoryDir = juce::File::getSpecialLocation(juce::File::currentApplicationFile)
+                          .getChildFile("Contents/Resources/presets/factory");
+    auto userDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                       .getChildFile("Application Support/OpenRiffBox/presets/user");
+#else
     auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
     auto presetsDir = exeDir.getChildFile("presets");
 
@@ -188,7 +196,11 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
         }
     }
 
-    presetManager = std::make_unique<PresetManager>(processorRef, presetsDir);
+    auto factoryDir = presetsDir.getChildFile("factory");
+    auto userDir = presetsDir.getChildFile("user");
+#endif
+
+    presetManager = std::make_unique<PresetManager>(processorRef, factoryDir, userDir);
 
     // Load slot assignments from app settings (falls back to defaults if unset)
 #if JucePlugin_Build_Standalone
