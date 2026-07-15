@@ -151,7 +151,10 @@ public:
               juce::JUCEApplication::getInstance()->getApplicationName(),
               juce::Colours::darkgrey,
               settings,
-              true)
+              // The app owns the settings object (appProperties / portableSettings);
+              // taking ownership here too made the holder delete it first and the
+              // app dtor crash on the second delete (every mac quit, silent on MSVC).
+              false)
     {
         // Apply our custom window LookAndFeel
         setLookAndFeel(&windowLF);
