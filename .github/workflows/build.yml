@@ -19,6 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest, macos-latest, ubuntu-latest ]
+        # tools = ORB_OFFLINE_TOOLS render build. mac/linux tools artifacts feed the
+        # offline validation kit; the windows one is built for compile coverage only
+        # (local build-offline covers rendering there), hence no windows-tools upload.
         flavor: [ ship, tools ]
 
     steps:
@@ -36,7 +39,7 @@ jobs:
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
-        run: cmake -B build -DORB_OFFLINE_TOOLS=${{ matrix.flavor == 'tools' && 'ON' || 'OFF' }}
+        run: cmake -B build -A x64 -DORB_OFFLINE_TOOLS=${{ matrix.flavor == 'tools' && 'ON' || 'OFF' }}
 
       - name: Configure (macOS)
         if: runner.os == 'macOS'
@@ -66,6 +69,9 @@ jobs:
           mkdir stage
           cp -R build/OpenRiffBox_artefacts/Release/Standalone/OpenRiffBox.app stage/
           cp -R build/OpenRiffBox_artefacts/Release/VST3/OpenRiffBox.vst3 stage/
+          # ad-hoc seal the (unsigned-beta) app so quarantined downloads get the
+          # recoverable "unidentified developer" flow instead of "damaged"
+          codesign --force -s - stage/OpenRiffBox.app
           tar -czf "OpenRiffBox-macos${{ matrix.flavor == 'tools' && '-tools' || '' }}.tar.gz" \
             -C stage OpenRiffBox.app OpenRiffBox.vst3
 
