@@ -18,6 +18,8 @@ namespace ExclusiveAudioMode
     inline constexpr const char* settingKey = "exclusiveAudio";
     inline constexpr const char* stashKey   = "audioSetupExclusive";
 
+#if JUCE_WINDOWS
+
     inline bool isEnabled(const juce::PropertySet* props)
     {
         return props != nullptr && props->getBoolValue(settingKey, false);
@@ -160,4 +162,16 @@ namespace ExclusiveAudioMode
         dm.setCurrentAudioDeviceType("Windows Audio", true);
         applyTypeGate(dm, false);
     }
+
+#else
+
+    // None of the gated device types exist off Windows; the policy is inert
+    // and AudioSettingsPanel never builds the toggle.
+    inline bool isEnabled(const juce::PropertySet*)                               { return false; }
+    inline void sanitizeSavedSetup(juce::PropertySet&)                            {}
+    inline void applyTypeGate(juce::AudioDeviceManager&, bool)                    {}
+    inline void enterExclusiveMode(juce::AudioDeviceManager&, juce::PropertySet&) {}
+    inline void exitExclusiveMode(juce::AudioDeviceManager&, juce::PropertySet&)  {}
+
+#endif
 }

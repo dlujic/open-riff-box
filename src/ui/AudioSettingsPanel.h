@@ -23,6 +23,7 @@ public:
                                               ExclusiveAudioMode::isEnabled(props));
             rebuildDeviceSelector();
 
+#if JUCE_WINDOWS
             exclusiveToggle.setButtonText("Exclusive audio (ASIO, lowest latency)");
             exclusiveToggle.setTooltip("Allows ASIO and exclusive-mode drivers for the lowest "
                                        "latency. May take over the audio device and interrupt "
@@ -31,6 +32,7 @@ public:
                                            juce::dontSendNotification);
             exclusiveToggle.onClick = [this] { applyExclusiveToggle(); };
             addAndMakeVisible(exclusiveToggle);
+#endif
         }
 
         tooltipToggle.setButtonText("Show parameter tooltips on hover");

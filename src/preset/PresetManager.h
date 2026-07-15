@@ -11,7 +11,8 @@ class OpenRiffBoxProcessor;
 class PresetManager
 {
 public:
-    PresetManager(OpenRiffBoxProcessor& processor, const juce::File& presetsRoot);
+    PresetManager(OpenRiffBoxProcessor& processor,
+                  const juce::File& factoryPresetDir, const juce::File& userPresetDir);
 
     void scanPresets();
 

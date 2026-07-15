@@ -208,7 +208,11 @@ namespace Theme
         {
             for (int x = 0; x < size; x += density)
             {
-                auto h = static_cast<unsigned int>((x * 73856093) ^ (y * 19349663));
+                // Multiply as unsigned: x * 73856093 overflows int (UB) for x >= 30,
+                // and gcc -O3 used that to delete the loop's bounds checks entirely
+                // (unbounded pixel writes, segfault on first paint on Linux).
+                auto h = (static_cast<unsigned int>(x) * 73856093u)
+                       ^ (static_cast<unsigned int>(y) * 19349663u);
                 h = (h >> 13) ^ h;
                 h = h * 0x45d9f3b;
                 h = (h >> 16) ^ h;
