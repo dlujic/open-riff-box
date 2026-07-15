@@ -225,8 +225,9 @@ public:
         // always use ~/Library/Application Support/OpenRiffBox.
         appProperties.setStorageParameters(options);
 #else
-        // Portable mode: store settings next to the exe if the directory is writable.
-        // Falls back to %APPDATA%/OpenRiffBox/ if not (e.g. installed in Program Files).
+        // Portable mode (Windows/Linux): store settings next to the exe if the
+        // directory is writable. Falls back to the OS-standard settings location
+        // if not (e.g. unpacked somewhere read-only).
         auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
                           .getParentDirectory();
         auto portableFile = exeDir.getChildFile("OpenRiffBox.settings");

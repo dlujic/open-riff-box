@@ -172,7 +172,8 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
     // Preset system
 #if JUCE_MAC
     // Factory presets ship inside the bundle; user presets need a writable dir,
-    // so they live next to the settings file in Application Support.
+    // so they live next to the settings file in Application Support (path must
+    // stay in sync with the storage parameters in Main.cpp).
     auto factoryDir = juce::File::getSpecialLocation(juce::File::currentApplicationFile)
                           .getChildFile("Contents/Resources/presets/factory");
     auto userDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
