@@ -141,7 +141,7 @@ target_compile_definitions(OpenRiffBox
         JUCE_ASIO=1
         JUCE_WASAPI=1
         JUCE_DIRECTSOUND=1
-        JUCE_JACK=1
+        $<$<PLATFORM_ID:Linux>:JUCE_JACK=1>
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_USE_CUSTOM_PLUGIN_STANDALONE_APP=1
     PRIVATE
