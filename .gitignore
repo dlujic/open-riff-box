@@ -1,5 +1,6 @@
 build/
 build-offline/
+build-win32/
 .vscode/
 .vs/
 Thumbs.db
