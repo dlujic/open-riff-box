@@ -230,7 +230,9 @@ Full tube amp circuit model -- five cascaded 12AX7 triode preamp stages, a long-
 
 ### Cabinet IRs
 
-All three engines share the same set of 14 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file.
+All three engines share the same set of 17 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file.
+
+The three Hanwell cabs are house captures of a small British valve combo, mic'd at three positions on the same speaker.
 
 | # | Name | Character |
 |---|------|-----------|
@@ -248,6 +250,9 @@ All three engines share the same set of 14 speaker cabinet impulse responses. Yo
 | 11 | Thunder Box | Deep, heavy low end with tight mids. Modern high-gain cab. |
 | 12 | Tweed Gold | Warm, vintage midrange character. Responds well to dynamics. |
 | 13 | Vox Chime | Bright, chimey, jangly top end. Great for cleans and light crunch. |
+| 14 | Hanwell One | Mic on the cap edge at 5 cm. Focused mids, the workhorse of the three. |
+| 15 | Hanwell Bright | Same cab, mic on the dust cap. More attack and top end. |
+| 16 | Hanwell Edge | Same cab, mic out at the baffle edge. Dark and mid-forward, no fizz. |
 
 ### Tips
 

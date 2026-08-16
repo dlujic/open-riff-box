@@ -20,7 +20,7 @@ and labeled **beta** -- lightly tested, reports welcome. If you play on either, 
 
 - **17 effects across 10 slots** - Compressor (3 modes), Wah (3 control modes), Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, Tremolo, 3-Band EQ
 - **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
-- **14 cabinet IRs** - Studio 57 to Vox Chime, plus No Cabinet and custom IR loading
+- **17 cabinet IRs** - Studio 57 to Hanwell Edge, plus No Cabinet and custom IR loading
 - **Real-time processing** - Low-latency audio: ASIO/WASAPI on Windows, CoreAudio on macOS, ALSA + JACK on Linux
 - **Reorderable signal chain** - Move effects into any order, or reset to default
 - **Built-in tuner** - Pitch detection with analog VU-meter display

@@ -135,6 +135,9 @@ juce_add_binary_data(OpenRiffBox_BinaryData
         "resources/irs/Thunder Box.wav"
         "resources/irs/Tweed Gold.wav"
         "resources/irs/Vox Chime.wav"
+        "resources/irs/Hanwell One.wav"
+        "resources/irs/Hanwell Bright.wav"
+        "resources/irs/Hanwell Edge.wav"
 )
 
 target_compile_definitions(OpenRiffBox

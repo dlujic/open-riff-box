@@ -24,7 +24,10 @@ static const char* cabinetNames2[AmpSimGold::kNumCabinets] = {
     "Plexi Roar",
     "Thunder Box",
     "Tweed Gold",
-    "Vox Chime"
+    "Vox Chime",
+    "Hanwell One",
+    "Hanwell Bright",
+    "Hanwell Edge"
 };
 
 const char* AmpSimGold::getCabinetName(int index)
@@ -56,6 +59,9 @@ void AmpSimGold::getIRData(int index, const void*& data, int& dataSize)
         case 11: data = BinaryData::Thunder_Box_wav;     dataSize = BinaryData::Thunder_Box_wavSize;     break;
         case 12: data = BinaryData::Tweed_Gold_wav;      dataSize = BinaryData::Tweed_Gold_wavSize;      break;
         case 13: data = BinaryData::Vox_Chime_wav;       dataSize = BinaryData::Vox_Chime_wavSize;       break;
+        case 14: data = BinaryData::Hanwell_One_wav;     dataSize = BinaryData::Hanwell_One_wavSize;     break;
+        case 15: data = BinaryData::Hanwell_Bright_wav;  dataSize = BinaryData::Hanwell_Bright_wavSize;  break;
+        case 16: data = BinaryData::Hanwell_Edge_wav;    dataSize = BinaryData::Hanwell_Edge_wavSize;    break;
         default: data = BinaryData::Studio_57_wav;       dataSize = BinaryData::Studio_57_wavSize;       break;
     }
 }

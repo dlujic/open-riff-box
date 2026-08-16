@@ -86,7 +86,7 @@ public:
 
     // The sentinels are pinned, not derived from kNumCabinets: cabinetType is
     // persisted as a raw int, so adding factory IRs must not shift them.
-    static constexpr int kNumCabinets   = 14;
+    static constexpr int kNumCabinets   = 17;
     static constexpr int kNoCabinet     = 200;   // bypass convolution
     static constexpr int kCustomCabinet = 201;
     static_assert(kNumCabinets < kNoCabinet, "factory IRs have grown into the sentinel range");
