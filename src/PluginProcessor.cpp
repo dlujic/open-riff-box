@@ -175,6 +175,26 @@ juce::AudioProcessorEditor* OpenRiffBoxProcessor::createEditor()
 }
 
 //==============================================================================
+namespace
+{
+    // The standalone also keeps the path in its settings file; a plugin has
+    // only this state, so without it a project reopens on Custom with no IR.
+    template <typename Amp>
+    void saveCustomIR(const Amp& amp, juce::XmlElement& e)
+    {
+        if (amp.getCabinetType() == Amp::kCustomCabinet)
+            e.setAttribute("customIRPath", amp.getCustomIRFile().getFullPathName());
+    }
+
+    template <typename Amp>
+    void restoreCustomIR(Amp& amp, const juce::XmlElement& e)
+    {
+        const auto path = e.getStringAttribute("customIRPath");
+        if (amp.getCabinetType() == Amp::kCustomCabinet && juce::File::isAbsolutePath(path))
+            amp.loadCustomIR(juce::File(path));
+    }
+}
+
 void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto xml = std::make_unique<juce::XmlElement>("OpenRiffBoxState");
@@ -281,6 +301,7 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("brightness",    amp->getBrightness());
         e->setAttribute("micPosition",   amp->getMicPosition());
         e->setAttribute("cabTrim",       amp->getCabTrim());
+        saveCustomIR(*amp, *e);
     }
 
     if (auto* amp2 = dynamic_cast<AmpSimGold*>(effectChain.getEffectByName("Amp Gold")))
@@ -298,6 +319,7 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("brightness",    amp2->getBrightness());
         e->setAttribute("micPosition",   amp2->getMicPosition());
         e->setAttribute("cabTrim",       amp2->getCabTrim());
+        saveCustomIR(*amp2, *e);
     }
 
     if (auto* plat = dynamic_cast<AmpSimPlatinum*>(effectChain.getEffectByName("Amp Platinum")))
@@ -321,6 +343,7 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
         e->setAttribute("normalMid",     plat->getNormalMid());
         e->setAttribute("normalTreble",  plat->getNormalTreble());
         e->setAttribute("normalLevel",   plat->getNormalLevel());
+        saveCustomIR(*plat, *e);
     }
 
     if (auto* delay = dynamic_cast<AnalogDelay*>(effectChain.getEffectByName("Delay")))
@@ -569,6 +592,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             {
                 int cab = ampXml->getIntAttribute("cabinetType", 0);
                 amp->setCabinetType(legacyCabinets ? AmpSimSilver::remapLegacyCabinet(cab) : cab);
+                restoreCustomIR(*amp, *ampXml);
             }
             amp->setBrightness(static_cast<float>(ampXml->getDoubleAttribute("brightness", 0.5)));
             amp->setMicPosition(static_cast<float>(ampXml->getDoubleAttribute("micPosition", 0.3)));
@@ -591,6 +615,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             {
                 int cab = amp2Xml->getIntAttribute("cabinetType", 10);
                 amp2->setCabinetType(legacyCabinets ? AmpSimGold::remapLegacyCabinet(cab) : cab);
+                restoreCustomIR(*amp2, *amp2Xml);
             }
             amp2->setBrightness(static_cast<float>(amp2Xml->getDoubleAttribute("brightness", 0.6)));
             amp2->setMicPosition(static_cast<float>(amp2Xml->getDoubleAttribute("micPosition", 0.5)));
@@ -613,6 +638,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             {
                 int cab = platXml->getIntAttribute("cabinetType", 0);
                 plat->setCabinetType(legacyCabinets ? AmpSimPlatinum::remapLegacyCabinet(cab) : cab);
+                restoreCustomIR(*plat, *platXml);
             }
             plat->setMicPosition(static_cast<float>(platXml->getDoubleAttribute("micPosition", 0.5)));
             plat->setCabTrim(static_cast<float>(platXml->getDoubleAttribute("cabTrim", 0.0)));
