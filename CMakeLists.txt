@@ -53,6 +53,7 @@ target_sources(OpenRiffBox
         src/dsp/AmpSimSilver.cpp
         src/dsp/AmpSimGold.cpp
         src/dsp/AmpSimPlatinum.cpp
+        src/dsp/CabinetIR.cpp
         src/dsp/TriodeStage.cpp
         src/dsp/PentodeStage.cpp
         src/dsp/AnalogDelay.cpp

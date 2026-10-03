@@ -1,5 +1,6 @@
 #include "AmpSimPlatinum.h"
 #include "BinaryData.h"
+#include "CabinetIR.h"
 
 #include <cmath>
 
@@ -562,12 +563,9 @@ void AmpSimPlatinum::prepare(double sampleRate, int samplesPerBlock)
 
     lastCabinetType = -1;
     if (cabinetTypeParam.load(std::memory_order_acquire) == kCustomCabinet
-        && customIRFile.existsAsFile())
+        && customIRFile.existsAsFile()
+        && CabinetIR::load(cabinetConvolution, customIRFile))
     {
-        cabinetConvolution.loadImpulseResponse(
-            customIRFile,
-            juce::dsp::Convolution::Stereo::no,
-            juce::dsp::Convolution::Trim::yes, 0);
         lastCabinetType = kCustomCabinet;
     }
     else
@@ -1525,15 +1523,10 @@ int AmpSimPlatinum::remapLegacyCabinet(int stored)
 
 void AmpSimPlatinum::loadCustomIR(const juce::File& irFile)
 {
-    if (!irFile.existsAsFile()) return;
+    if (!irFile.existsAsFile() || !CabinetIR::load(cabinetConvolution, irFile))
+        return;
 
     customIRFile = irFile;
-
-    cabinetConvolution.loadImpulseResponse(
-        irFile,
-        juce::dsp::Convolution::Stereo::no,
-        juce::dsp::Convolution::Trim::yes, 0);
-
     cabinetTypeParam.store(kCustomCabinet, std::memory_order_release);
     lastCabinetType = kCustomCabinet;
 }
