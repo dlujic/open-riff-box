@@ -138,6 +138,9 @@ juce_add_binary_data(OpenRiffBox_BinaryData
         "resources/irs/Hanwell One.wav"
         "resources/irs/Hanwell Bright.wav"
         "resources/irs/Hanwell Edge.wav"
+        "resources/irs/Irvine One.wav"
+        "resources/irs/Irvine Bright.wav"
+        "resources/irs/Irvine Edge.wav"
 )
 
 target_compile_definitions(OpenRiffBox

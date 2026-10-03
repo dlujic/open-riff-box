@@ -26,7 +26,10 @@ static const char* cabinetNames[AmpSimSilver::kNumCabinets] = {
     "Vox Chime",
     "Hanwell One",
     "Hanwell Bright",
-    "Hanwell Edge"
+    "Hanwell Edge",
+    "Irvine One",
+    "Irvine Bright",
+    "Irvine Edge"
 };
 
 const char* AmpSimSilver::getCabinetName(int index)
@@ -61,6 +64,9 @@ void AmpSimSilver::getIRData(int index, const void*& data, int& dataSize)
         case 14: data = BinaryData::Hanwell_One_wav;     dataSize = BinaryData::Hanwell_One_wavSize;     break;
         case 15: data = BinaryData::Hanwell_Bright_wav;  dataSize = BinaryData::Hanwell_Bright_wavSize;  break;
         case 16: data = BinaryData::Hanwell_Edge_wav;    dataSize = BinaryData::Hanwell_Edge_wavSize;    break;
+        case 17: data = BinaryData::Irvine_One_wav;      dataSize = BinaryData::Irvine_One_wavSize;      break;
+        case 18: data = BinaryData::Irvine_Bright_wav;   dataSize = BinaryData::Irvine_Bright_wavSize;   break;
+        case 19: data = BinaryData::Irvine_Edge_wav;     dataSize = BinaryData::Irvine_Edge_wavSize;     break;
         default: data = BinaryData::Studio_57_wav;       dataSize = BinaryData::Studio_57_wavSize;       break;
     }
 }

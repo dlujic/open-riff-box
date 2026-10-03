@@ -230,9 +230,9 @@ Full tube amp circuit model -- five cascaded 12AX7 triode preamp stages, a long-
 
 ### Cabinet IRs
 
-All three engines share the same set of 17 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file.
+All three engines share the same set of 20 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file.
 
-The three Hanwell cabs are house captures of a small British valve combo, mic'd at three positions on the same speaker.
+The three Hanwell cabs are house captures of a small British valve combo, mic'd at three positions on the same speaker. The three Irvine cabs are the same idea on a 50 W 1x12 American tube combo.
 
 | # | Name | Character |
 |---|------|-----------|
@@ -253,6 +253,9 @@ The three Hanwell cabs are house captures of a small British valve combo, mic'd 
 | 14 | Hanwell One | Mic on the cap edge at 5 cm. Focused mids, the workhorse of the three. |
 | 15 | Hanwell Bright | Same cab, mic on the dust cap. More attack and top end. |
 | 16 | Hanwell Edge | Same cab, mic out at the baffle edge. Dark and mid-forward, no fizz. |
+| 17 | Irvine One | Mic on the cap edge at 5 cm. Balanced, mid-focused, the workhorse of the three. |
+| 18 | Irvine Bright | Same cab, mic on the dust cap. Brightest of the three, forward pick attack. |
+| 19 | Irvine Edge | Same cab, mic tight on the baffle edge. Darkest and thickest, low-mid weight. |
 
 ### Tips
 
