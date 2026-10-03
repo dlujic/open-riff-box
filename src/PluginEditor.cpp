@@ -1,6 +1,5 @@
 #include "PluginEditor.h"
 #include "ui/MainLayout.h"
-#include "ui/Theme.h"
 
 OpenRiffBoxEditor::OpenRiffBoxEditor(OpenRiffBoxProcessor& processor)
     : AudioProcessorEditor(&processor),

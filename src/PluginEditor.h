@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "PluginProcessor.h"
+#include "ui/Theme.h"
 
 class MainLayout;
 
@@ -18,6 +19,7 @@ public:
 
 private:
     OpenRiffBoxProcessor& processorRef;
+    Theme::AssetsHandle themeAssets;   // declared before the UI so it outlives it
     std::unique_ptr<MainLayout> mainLayout;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OpenRiffBoxEditor)

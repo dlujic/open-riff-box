@@ -59,38 +59,39 @@ namespace Theme
     }
 
     //===========================================================================
+    // Shared assets - typefaces + noise tile
+    //===========================================================================
+    // On Windows these wrap DirectWrite/Direct2D objects (the tile pins a D3D
+    // device). Never keep them in statics: in the plugin, statics die in DllMain
+    // when the host unloads us, and releasing a D3D device under the loader lock
+    // deadlocks the host. Each editor holds an AssetsHandle, so the last one to
+    // close frees everything on the message thread.
+    struct SharedAssets
+    {
+        juce::Typeface::Ptr interRegular = juce::Typeface::createSystemTypefaceFor(
+            BinaryData::Inter_18ptRegular_ttf, BinaryData::Inter_18ptRegular_ttfSize);
+        juce::Typeface::Ptr interSemiBold = juce::Typeface::createSystemTypefaceFor(
+            BinaryData::Inter_18ptSemiBold_ttf, BinaryData::Inter_18ptSemiBold_ttfSize);
+        juce::Typeface::Ptr interBold = juce::Typeface::createSystemTypefaceFor(
+            BinaryData::Inter_18ptBold_ttf, BinaryData::Inter_18ptBold_ttfSize);
+        juce::Typeface::Ptr metalMania = juce::Typeface::createSystemTypefaceFor(
+            BinaryData::MetalManiaRegular_ttf, BinaryData::MetalManiaRegular_ttfSize);
+
+        juce::Image noiseTile;
+        float noiseTileOpacity = -1.0f;
+    };
+
+    using AssetsHandle = juce::SharedResourcePointer<SharedAssets>;
+
+    //===========================================================================
     // Fonts — Inter (UI) + Metal Mania (display title only)
     //===========================================================================
     namespace Fonts
     {
-        // Typeface singletons (created on first use, cached forever)
-        inline juce::Typeface::Ptr getInterRegular()
-        {
-            static auto tf = juce::Typeface::createSystemTypefaceFor(
-                BinaryData::Inter_18ptRegular_ttf, BinaryData::Inter_18ptRegular_ttfSize);
-            return tf;
-        }
-
-        inline juce::Typeface::Ptr getInterSemiBold()
-        {
-            static auto tf = juce::Typeface::createSystemTypefaceFor(
-                BinaryData::Inter_18ptSemiBold_ttf, BinaryData::Inter_18ptSemiBold_ttfSize);
-            return tf;
-        }
-
-        inline juce::Typeface::Ptr getInterBold()
-        {
-            static auto tf = juce::Typeface::createSystemTypefaceFor(
-                BinaryData::Inter_18ptBold_ttf, BinaryData::Inter_18ptBold_ttfSize);
-            return tf;
-        }
-
-        inline juce::Typeface::Ptr getMetalMania()
-        {
-            static auto tf = juce::Typeface::createSystemTypefaceFor(
-                BinaryData::MetalManiaRegular_ttf, BinaryData::MetalManiaRegular_ttfSize);
-            return tf;
-        }
+        inline juce::Typeface::Ptr getInterRegular()  { return AssetsHandle()->interRegular; }
+        inline juce::Typeface::Ptr getInterSemiBold() { return AssetsHandle()->interSemiBold; }
+        inline juce::Typeface::Ptr getInterBold()     { return AssetsHandle()->interBold; }
+        inline juce::Typeface::Ptr getMetalMania()    { return AssetsHandle()->metalMania; }
 
         // Default typeface for setDefaultSansSerifTypeface()
         inline juce::Typeface::Ptr getRegular() { return getInterRegular(); }
@@ -186,19 +187,20 @@ namespace Theme
         g.drawLine(x1, y + 1.5f, x2, y + 1.5f, 1.0f);
     }
 
-    // Returns a cached noise tile image (generated once, reused forever).
-    // The tile is 128x128 and gets tiled across the target area.
-    inline const juce::Image& getNoiseTile(float opacity = 0.04f)
+    // Returns the cached noise tile (built on first use, kept in SharedAssets).
+    // The tile is 128x128 and gets tiled across the target area. Returned by
+    // value: Image is a shared handle, and a reference could outlive the assets.
+    inline juce::Image getNoiseTile(float opacity = 0.04f)
     {
-        static juce::Image tile;
-        static float cachedOpacity = -1.0f;
+        AssetsHandle assets;
+        auto& tile = assets->noiseTile;
 
-        if (tile.isValid() && cachedOpacity == opacity)
+        if (tile.isValid() && assets->noiseTileOpacity == opacity)
             return tile;
 
         const int size = 128;
         const int density = 3;
-        cachedOpacity = opacity;
+        assets->noiseTileOpacity = opacity;
         tile = juce::Image(juce::Image::ARGB, size, size, true);
 
         auto baseAlpha = static_cast<juce::uint8>(opacity * 255.0f);
@@ -236,7 +238,7 @@ namespace Theme
     inline void paintNoise(juce::Graphics& g, juce::Rectangle<int> area,
                            float opacity = 0.04f)
     {
-        auto& tile = getNoiseTile(opacity);
+        const auto tile = getNoiseTile(opacity);
         const int tileW = tile.getWidth();
         const int tileH = tile.getHeight();
 
