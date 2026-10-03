@@ -42,6 +42,11 @@ OpenRiffBoxProcessor::OpenRiffBoxProcessor()
     effectChain.addEffect(std::make_unique<Vibrato>());
     effectChain.addEffect(std::make_unique<Tremolo>());
     effectChain.addEffect(std::make_unique<Equalizer>());
+
+    // Only the standalone starts stopped (it owns the audio device). In a host
+    // the plugin must pass audio from the first block - the host has its own
+    // transport and bypass, and the editor hides the power switch.
+    audioActive.store(!isStandalone(), std::memory_order_release);
 }
 
 //==============================================================================
@@ -174,7 +179,7 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto xml = std::make_unique<juce::XmlElement>("OpenRiffBoxState");
     xml->setAttribute("version", Preset::kSchemaVersion);
-    // audioActive intentionally not saved - always start stopped
+    // audioActive intentionally not saved - set per wrapper in the constructor
     xml->setAttribute("limiterEnabled", limiterEnabled.load(std::memory_order_acquire));
     xml->setAttribute("masterVolume", static_cast<double>(masterVolume.load(std::memory_order_relaxed)));
     xml->setAttribute("ampSimEngine", ampSimEngine);
@@ -432,7 +437,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     // 14/15. The attribute is absent from every such blob, hence the 0 default.
     const bool legacyCabinets = xml->getIntAttribute("version", 0) < 3;
 
-    // audioActive always starts false - don't restore it
+    // audioActive is set per wrapper in the constructor - don't restore it
     limiterEnabled.store(xml->getBoolAttribute("limiterEnabled", true), std::memory_order_release);
     masterVolume.store(static_cast<float>(xml->getDoubleAttribute("masterVolume", 1.0)), std::memory_order_relaxed);
     ampSimEngine = juce::jlimit(0, 2, xml->getIntAttribute("ampSimEngine", 1));

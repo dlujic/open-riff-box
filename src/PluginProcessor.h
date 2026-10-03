@@ -56,6 +56,10 @@ public:
     bool isAudioActive() const { return audioActive.load(std::memory_order_acquire); }
     void setAudioActive(bool active) { audioActive.store(active, std::memory_order_release); }
 
+    // Runtime wrapper check - JucePlugin_Build_Standalone is 1 in every format's
+    // build of the shared code, so it can't tell the standalone from the VST3.
+    bool isStandalone() const { return wrapperType == wrapperType_Standalone; }
+
     //===========================================================================
     // Peak metering (input / output)
     //===========================================================================

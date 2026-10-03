@@ -16,6 +16,7 @@ public:
 
 private:
     OpenRiffBoxProcessor& processorRef;
+    const bool showPower;   // standalone only - a host owns start/stop
 
     juce::TextButton powerButton;
     juce::TextButton limiterButton;

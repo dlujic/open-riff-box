@@ -3,7 +3,8 @@
 #include "PluginProcessor.h"
 
 SidebarPanel::SidebarPanel(OpenRiffBoxProcessor& processor)
-    : processorRef(processor)
+    : processorRef(processor),
+      showPower(processor.isStandalone())
 {
     powerButton.setButtonText("");
     powerButton.setLookAndFeel(&powerLF);
@@ -12,7 +13,8 @@ SidebarPanel::SidebarPanel(OpenRiffBoxProcessor& processor)
         powerLF.audioActive = processorRef.isAudioActive();
         powerButton.repaint();
     };
-    addAndMakeVisible(powerButton);
+    if (showPower)
+        addAndMakeVisible(powerButton);
 
     powerLF.audioActive = processorRef.isAudioActive();
 
@@ -105,6 +107,7 @@ void SidebarPanel::paint(juce::Graphics& g)
                        static_cast<float>(bounds.getBottom()));
 
     // "POWER" label above rocker switch
+    if (showPower)
     {
         auto area = getLocalBounds().reduced(10, 12);
         g.setColour(Theme::Colours::textSecondary);
@@ -225,15 +228,18 @@ void SidebarPanel::resized()
 {
     auto area = getLocalBounds().reduced(10, 12);
 
-    // "POWER" label above the switch (painted in paint())
-    area.removeFromTop(14);
+    if (showPower)
+    {
+        // "POWER" label above the switch (painted in paint())
+        area.removeFromTop(14);
 
-    // Rocker switch — wide rectangular toggle
-    auto btnArea = area.removeFromTop(28);
-    int btnW = juce::jmin(area.getWidth(), 52);
-    powerButton.setBounds(btnArea.withSizeKeepingCentre(btnW, 26));
+        // Rocker switch - wide rectangular toggle
+        auto btnArea = area.removeFromTop(28);
+        int btnW = juce::jmin(area.getWidth(), 52);
+        powerButton.setBounds(btnArea.withSizeKeepingCentre(btnW, 26));
 
-    area.removeFromTop(10); // gap
+        area.removeFromTop(10); // gap
+    }
 
     // Jewel indicator light below the switch
     jewelArea = area.removeFromTop(14).withSizeKeepingCentre(14, 14);
