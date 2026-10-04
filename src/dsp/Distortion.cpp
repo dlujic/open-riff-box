@@ -33,7 +33,6 @@ void Distortion::prepare(double sampleRate, int samplesPerBlock)
 
     *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(
         sampleRate, 140.0f);
-    preHighpass.prepare(spec);
 
     *dcBlocker.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(
         sampleRate, 7.0f);
@@ -86,7 +85,12 @@ void Distortion::prepare(double sampleRate, int samplesPerBlock)
         autoDarkenLPF[ch].prepare(monoOsSpec);
     }
 
+    // The filters above are Overdrive's. A state restore or device change runs
+    // prepare() after setMode(), so re-apply the current mode's here, then size
+    // preHighpass for its order (2nd in Distortion) off the audio thread.
     lastMode = modeParam.load(std::memory_order_acquire);
+    applyModeFilters(static_cast<Mode>(lastMode));
+    preHighpass.prepare(spec);
 }
 
 void Distortion::reset()
@@ -417,31 +421,34 @@ void Distortion::updateModeFilters()
     if (currentModeInt != lastMode)
     {
         lastMode = currentModeInt;
-        auto mode = static_cast<Mode>(currentModeInt);
+        applyModeFilters(static_cast<Mode>(currentModeInt));
+    }
+}
 
-        switch (mode)
-        {
-            case Mode::Overdrive:
-                *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(currentSampleRate, 140.0f);
-                for (int ch = 0; ch < 2; ++ch)
-                    *preClipLPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 7200.0f);
-                break;
-            case Mode::TubeDrive:
-                *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(currentSampleRate, 100.0f);
-                for (int ch = 0; ch < 2; ++ch)
-                    *preClipLPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 5800.0f);
-                break;
-            case Mode::Distortion:
-                *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSampleRate, 250.0f, 0.707f);
-                for (int ch = 0; ch < 2; ++ch)
-                {
-                    *interstageHPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(oversampledRate, 200.0f);
-                    *interstageLPF1[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 6000.0f);
-                }
-                break;
-            case Mode::Metal:
-                break;
-        }
+void Distortion::applyModeFilters(Mode mode)
+{
+    switch (mode)
+    {
+        case Mode::Overdrive:
+            *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(currentSampleRate, 140.0f);
+            for (int ch = 0; ch < 2; ++ch)
+                *preClipLPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 7200.0f);
+            break;
+        case Mode::TubeDrive:
+            *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(currentSampleRate, 100.0f);
+            for (int ch = 0; ch < 2; ++ch)
+                *preClipLPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 5800.0f);
+            break;
+        case Mode::Distortion:
+            *preHighpass.state = *juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSampleRate, 250.0f, 0.707f);
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                *interstageHPF[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderHighPass(oversampledRate, 200.0f);
+                *interstageLPF1[ch].coefficients = *juce::dsp::IIR::Coefficients<float>::makeFirstOrderLowPass(oversampledRate, 6000.0f);
+            }
+            break;
+        case Mode::Metal:
+            break;
     }
 }
 

@@ -67,6 +67,10 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
         if (id > 0)
         {
             distortionRef.setMode(static_cast<Distortion::Mode>(id - 1));
+            // Metal keeps its own Drive/Tone/Level; the getters follow the mode
+            driveKnob.setValue(distortionRef.getDrive(), juce::dontSendNotification);
+            toneKnob.setValue(distortionRef.getTone(),   juce::dontSendNotification);
+            levelKnob.setValue(distortionRef.getLevel(), juce::dontSendNotification);
             toneKnob.updateText();
             updateControlVisibility();
             onParameterChanged();

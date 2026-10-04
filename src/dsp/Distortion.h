@@ -87,6 +87,7 @@ private:
     void processTubeDriveBlock(juce::dsp::AudioBlock<float>& oversampledBlock);
     void processDistortionBlock(juce::dsp::AudioBlock<float>& oversampledBlock);
     void updateModeFilters();
+    void applyModeFilters(Mode mode);
 
     juce::dsp::IIR::Filter<float> interstageHPF[2];
     juce::dsp::IIR::Filter<float> interstageLPF1[2];
