@@ -263,14 +263,14 @@ AmpSimGoldPanel::AmpSimGoldPanel(AmpSimGold& ampSimGold)
 
     // Tooltips
     gainKnob.setTooltip("Master input gain - controls how hard you drive the preamp.");
-    bassKnob.setTooltip("Low shelf cut at 150 Hz. 100% = flat (no cut).");
-    midKnob.setTooltip("Peaking cut at 800 Hz. 100% = flat (no cut).");
-    trebleKnob.setTooltip("High shelf cut at 3 kHz. 100% = flat (no cut).");
+    bassKnob.setTooltip("Bass control - passive tone stack, interacts with Mid and Treble.");
+    midKnob.setTooltip("Mid control - passive tone stack, interacts with Bass and Treble.");
+    trebleKnob.setTooltip("Treble control - passive tone stack, interacts with Bass and Mid.");
     brightnessKnob.setTooltip("Brightness - high shelf at 3.5 kHz. Center = neutral, low = dark, high = bright.");
-    micPositionKnob.setTooltip("Mic placement - low = close/dark (on-cone), high = bright/airy (off-axis).");
+    micPositionKnob.setTooltip("Mic - high shelf at 1.5 kHz. Center = neutral, low = darker, high = brighter.");
     speakerDriveSlider.setTooltip("Power amp tube saturation. Push-pull topology with global negative feedback.");
     presenceSlider.setTooltip("Presence - shapes power amp feedback. Low = tight/dark (full NFB), high = open/bright (HF freed from NFB).");
-    preampBoostToggle.setTooltip("+12 dB preamp boost. Pushes harder into the waveshaper engine.");
+    preampBoostToggle.setTooltip("+3.5 dB preamp boost. Pushes harder into the waveshaper engine.");
     cabinetSelector.setTooltip("Select the speaker cabinet impulse response.");
     cabTrimSlider.setTooltip("Manual cabinet volume trim. Adjusts on top of auto-normalization.");
     loadIRButton.setTooltip("Load a custom cabinet IR (.wav file).");

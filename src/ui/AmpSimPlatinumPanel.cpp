@@ -297,8 +297,8 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     bassKnob.setTooltip("Bass control - tone stack.");
     midKnob.setTooltip("Mid control - tone stack.");
     trebleKnob.setTooltip("Treble control - tone stack.");
-    micPositionKnob.setTooltip("Mic placement - low = close/dark (on-cone), high = bright/airy (off-axis).");
-    normalLevelKnob.setTooltip("Normal channel LEVEL - also the bright cap: low = dark and quiet, high = loud and flat.");
+    micPositionKnob.setTooltip("Mic - high shelf at 1.5 kHz. Center = neutral, low = darker, high = brighter.");
+    normalLevelKnob.setTooltip("Normal channel LEVEL - also the bright cap: low = quiet and bright, high = loud and flat.");
     ovLevelSlider.setTooltip("OV Level - attenuator after the overdrive channel (V3 stage input level).");
     masterSlider.setTooltip("Master volume - controls push-pull power amp output level.");
     cabinetSelector.setTooltip("Select the speaker cabinet impulse response.");

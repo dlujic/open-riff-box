@@ -95,7 +95,7 @@ CompressorPanel::CompressorPanel(Compressor& comp)
     addAndMakeVisible(resetButton);
 
     sustainKnob.setTooltip("Sidechain drive. Controls how much signal is fed into the detector; higher = more compression.");
-    attackKnob .setTooltip("Attack time. Shorter lets more pick transient through; longer evens out attack.");
+    attackKnob .setTooltip("Attack time. Longer lets more pick transient through; shorter clamps it and evens out the attack.");
     blendKnob  .setTooltip("Parallel blend. 0=dry, 1=fully compressed. Mix in clean signal to restore dynamics.");
     levelKnob  .setTooltip("Output trim. +/-12 dB around auto makeup gain. Useful for matching bypass level.");
 

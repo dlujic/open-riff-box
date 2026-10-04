@@ -90,7 +90,7 @@ TremoloPanel::TremoloPanel(Tremolo& tremolo)
     addAndMakeVisible(resetButton);
 
     rateKnob.setTooltip("LFO speed. Controls how fast the volume cycles.");
-    depthKnob.setTooltip("Modulation amount. 0=off, 100%=approaches gating at trough.");
+    depthKnob.setTooltip("Modulation amount. 0 = no modulation, 100% = full swing (Photo nearly gates at the trough).");
     widthKnob.setTooltip("Stereo width. 0=mono, 150 deg=wide stereo (mono-safe; full pan would collapse in mono).");
     outputKnob.setTooltip("Make-up gain. -12 to +12 dB to compensate volume drop or balance preset levels.");
 

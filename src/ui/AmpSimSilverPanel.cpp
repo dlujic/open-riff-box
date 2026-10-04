@@ -259,8 +259,8 @@ AmpSimSilverPanel::AmpSimSilverPanel(AmpSimSilver& ampSimSilver)
     midKnob.setTooltip("Peaking EQ at 800 Hz. 50% = flat.");
     trebleKnob.setTooltip("High shelf EQ at 3 kHz. 50% = flat.");
     brightnessKnob.setTooltip("Brightness - high shelf at 3.5 kHz. Center = neutral, low = dark, high = bright.");
-    micPositionKnob.setTooltip("Mic placement - low = close/dark (on-cone), high = bright/airy (off-axis).");
-    speakerDriveSlider.setTooltip("Power amp and speaker cone distortion. Adds warmth and even harmonics.");
+    micPositionKnob.setTooltip("Mic - high shelf at 1.5 kHz. Center = neutral, low = darker, high = brighter.");
+    speakerDriveSlider.setTooltip("Speaker cone saturation after the power amp. Symmetric - adds compression and odd harmonics.");
     preampBoostToggle.setTooltip("+12 dB preamp boost with tanh saturation. Pushes into breakup.");
     cabinetSelector.setTooltip("Select the speaker cabinet impulse response.");
     cabTrimSlider.setTooltip("Manual cabinet volume trim. Adjusts on top of auto-normalization.");

@@ -138,7 +138,7 @@ FlangerPanel::FlangerPanel(Flanger& flanger)
     // Tooltips
     rateKnob.setTooltip("LFO speed. Slower = majestic jet sweep, faster = rapid flutter.");
     depthKnob.setTooltip("Sweep range - how far the delay sweeps from center. More = wider jet effect.");
-    manualKnob.setTooltip("Center delay position. At Rate=0, this sets the static comb filter frequency.");
+    manualKnob.setTooltip("Center delay of the sweep. With Rate and Depth at minimum the comb is nearly static.");
     feedbackKnob.setTooltip("Resonance intensity. Higher = more metallic/ringy character.");
     eqKnob.setTooltip("Wet signal brightness filter (800 Hz to 12 kHz). Only affects the flanger, not dry signal.");
     mixKnob.setTooltip("Wet/dry mix. 50% gives maximum comb filter depth.");

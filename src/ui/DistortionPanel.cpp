@@ -197,7 +197,7 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
     clipXHardBtn.setTooltip("Aggro clipping - near hard-clip, maximum bite.");
     modeSelector.setTooltip("Overdrive: Mild amp-like breakup, good for blues/classic rock.\n"
                             "Tube Drive: Warmer, more compressed with asymmetric clipping.\n"
-                            "Distortion: Two-stage cascaded clipping, auto-darkening at high gain.\n"
+                            "Distortion: Three-stage cascaded clipping, auto-darkening at high gain.\n"
                             "Metal: Three-stage high-gain with 5 post-filters, built-in expander.");
     bypassButton.setTooltip("Click to toggle Distortion bypass.");
     resetButton.setTooltip("Reset all Distortion parameters to defaults.");

@@ -106,8 +106,8 @@ DelayPanel::DelayPanel(AnalogDelay& delay)
 
     // Tooltips
     timeKnob.setTooltip("Delay time (logarithmic). More resolution at shorter times.");
-    intensityKnob.setTooltip("Feedback - how many repeats. Above ~80% the delay self-oscillates.");
-    echoKnob.setTooltip("Wet/dry mix. 0% = fully dry, 100% = fully wet.");
+    intensityKnob.setTooltip("Feedback - how many repeats. Even at 100% the repeats fade out; it never self-oscillates.");
+    echoKnob.setTooltip("Echo level on top of the dry signal, which stays at full level. 0% = no repeats.");
     modDepthKnob.setTooltip("Modulation intensity - how much the delay time wobbles.");
     modRateKnob.setTooltip("Modulation speed. Higher = faster wobble.");
     toneSlider.setTooltip("Feedback path tone. Lower = darker repeats, higher = brighter.");
