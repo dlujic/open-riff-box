@@ -125,7 +125,7 @@ This is a mid-focused overdrive -- it boosts mids, tames lows, and rolls off hig
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Drive | 0-100% | **50%** | Controls the feedback resistance, which sets distortion intensity. At low values you get a clean boost with mid emphasis. At high values, full diode clipping. |
-| Level | -inf to +6 dB | **-27 dB** | Output volume. |
+| Level | -60 to +6 dB | **-27 dB** | Output volume. |
 
 ### Tips
 
@@ -154,20 +154,20 @@ Signal chain: Pre-HPF (140 Hz Overdrive, 100 Hz Tube Drive, 250 Hz Distortion) -
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Drive | 0-100% | **50%** | Distortion intensity. Higher = more gain, more harmonics, more sustain. |
-| Tone | 0-100% | **65%** | Post-distortion low-pass filter. Lower = darker, warmer. Higher = brighter, more bite. |
-| Level | -inf to +6 dB | **-13.8 dB** | Output volume after distortion. |
+| Tone | 500 Hz to 7.1 kHz (Distortion: 6.0 kHz, Metal: 5.0 kHz) | **2.8 kHz** (Metal: 5.0 kHz) | Post-distortion low-pass filter; the readout shows its cutoff. Lower = darker, warmer. Higher = brighter, more bite. |
+| Level | -60 to +6 dB | **-13.8 dB** (Metal: -3.9 dB) | Output volume after distortion. |
 | Mode | Overdrive / Tube Drive / Distortion / Metal | **Overdrive** | Distortion character (see above). |
-| Dry Mix | 0-100% | **20%** | Blends clean signal with distorted signal using equal-power crossfade. 0% = fully distorted. |
+| Mix | 0-100% | **80%** | Overdrive and Tube Drive modes only. Blends the distorted signal with the clean one using an equal-power crossfade. 0% = clean, 100% = fully distorted. |
 | Clipping | Gentle / Warm / Sharp / Aggro | **Warm** | Tube clip hardness (Overdrive and Tube Drive modes only). Gentle = more headroom, smooth compression. Aggro = sharp knee, nearly hard-clips. |
 | Saturate | On/Off + 0-100% | **Off, 50%** | Overdrive and Tube Drive modes only. Pre-distortion compressor. Evens out dynamics before clipping. Useful for tighter, more consistent distortion at any drive level. |
 
 ### Tips
 
-- **Classic rock:** Overdrive mode, Drive 40-60%, Tone 50-70%, Clipping Warm.
-- **Blues:** Overdrive mode, Drive 25-40%, Tone 40-55%, Clipping Gentle. Keep Dry Mix at 20-30% for note clarity.
-- **Hard rock:** Distortion mode, Drive 50-70%, Tone 55-70%.
-- **Metal rhythm:** Metal mode, Drive 60-80%, Tone 70-90%. The built-in filtering and expander handle the rest.
-- **Metal lead:** Metal mode, Drive 70-90%, Tone 50-65% (back off tone for smoother leads).
+- **Classic rock:** Overdrive mode, Drive 40-60%, Tone 1.9-3.2 kHz, Clipping Warm.
+- **Blues:** Overdrive mode, Drive 25-40%, Tone 1.4-2.1 kHz, Clipping Gentle. Pull Mix down to 70-80% to blend some clean back in for note clarity.
+- **Hard rock:** Distortion mode, Drive 50-70%, Tone 2.0-2.9 kHz.
+- **Metal rhythm:** Metal mode, Drive 60-80%, Tone 2.5-4.0 kHz. The built-in filtering and expander handle the rest.
+- **Metal lead:** Metal mode, Drive 70-90%, Tone 1.6-2.2 kHz (back off tone for smoother leads).
 - **If it sounds fizzy:** Lower the Tone, or try Distortion mode instead of Metal -- it has auto-darkening that tracks the drive.
 
 ---
@@ -190,8 +190,8 @@ Lightweight amp sim with 3-band EQ, preamp boost, power amp stage, and cabinet s
 | Speaker Drive | 0-100% | **20%** | Speaker cone saturation. Adds warmth and compression on top of the power amp stage. |
 | Cabinet | 20 IRs + No Cabinet + Custom | **Studio 57** | Speaker cabinet impulse response (see list below). **Load IR...** loads your own WAV. |
 | Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
-| Brightness | 0-100% | **50%** | Post-cab brightness. Lower = darker, rolled-off top end. Higher = full brightness. |
-| Mic | -4 to +4 dB | **-1.6 dB** | Simulates mic placement. Lower = close/dark, higher = bright/airy. 0 dB = neutral. |
+| Brightness | -6 to +6 dB | **0 dB** | High shelf at 3.5 kHz after the cab. Lower = darker, rolled-off top end. Higher = brighter. |
+| Mic | -4 to +4 dB | **-1.6 dB** | High shelf at 1.5 kHz. Lower = darker, higher = brighter. 0 dB = neutral. |
 
 ### Gold Engine
 
@@ -200,7 +200,7 @@ Higher-fidelity amp model with a multi-stage waveshaper preamp, circuit-modeled 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Gain | 0-100% | **40%** | Preamp input drive. |
-| Bass | 0-100% | **50%** | Tone stack bass. Circuit-modeled 3rd-order IIR filter. |
+| Bass | 0-100% | **50%** | Tone stack bass. Circuit-modeled passive stack (3rd-order IIR), so Bass, Mid and Treble interact. |
 | Mid | 0-100% | **60%** | Tone stack mid. |
 | Treble | 0-100% | **50%** | Tone stack treble. |
 | Pre Boost | On/Off | **Off** | About +3.5 dB of extra drive into the preamp. |
@@ -208,8 +208,8 @@ Higher-fidelity amp model with a multi-stage waveshaper preamp, circuit-modeled 
 | Presence | 0-100% | **70%** | Negative feedback loop cutoff. Controls upper-mid clarity and bite. Higher = brighter. |
 | Cabinet | 20 IRs + No Cabinet + Custom | **Plexi Roar** | Speaker cabinet impulse response. **Load IR...** loads your own WAV. |
 | Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
-| Brightness | 0-100% | **60%** | Post-cab brightness overlay. |
-| Mic | -4 to +4 dB | **0 dB** | Mic position simulation. 0 dB = neutral. |
+| Brightness | -6 to +6 dB | **+1.2 dB** | High shelf at 3.5 kHz after the cab. |
+| Mic | -4 to +4 dB | **0 dB** | High shelf at 1.5 kHz. 0 dB = neutral. |
 
 ### Platinum Engine
 
@@ -232,7 +232,7 @@ Full tube amp circuit model with two channels: **OD** and **Normal** (clean). Th
 | Input | HIGH / LOW | **HIGH** | Input jack. LOW pads the input by 6 dB. Both channels. |
 | Cabinet | 20 IRs + No Cabinet + Custom | **Studio 57** | Speaker cabinet impulse response. **Load IR...** loads your own WAV. |
 | Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
-| Mic | -4 to +4 dB | **0 dB** | Mic position simulation. Lower = close/dark, higher = bright/airy. |
+| Mic | -4 to +4 dB | **0 dB** | High shelf at 1.5 kHz. Lower = darker, higher = brighter. |
 
 ### Cabinet IRs
 
@@ -287,8 +287,8 @@ Uses cubic Hermite interpolation for smooth fractional delay reads.
 | Time | 20-400 ms (logarithmic) | **~200 ms** | Delay time. The scale is logarithmic -- more resolution at shorter times. |
 | Intensity | 0-100% | **35%** | Feedback amount -- how many repeats. Higher values give more echoes. Near the top of the range the repeats take a long time to fade, but the saturation in the loop keeps them from running away. |
 | Echo | 0-100% | **50%** | Echo level. The dry signal always passes at full level; Echo sets how loud the repeats are on top of it. 0% = no repeats. |
-| Mod | 0-5 ms | **30%** | Modulation intensity -- how much the delay time wobbles. Adds chorus-like movement. |
-| Rate | 0.1-5.0 Hz | **30%** | Modulation speed. Higher = faster wobble. |
+| Mod | 0-100% | **30%** | Modulation intensity -- how much the delay time wobbles. Adds chorus-like movement. The wobble it adds grows with Time, and a trace stays even at 0. |
+| Rate | 0.1-2.0 Hz | **0.67 Hz** | Wow speed. Higher = faster wobble. Flutter runs at a fixed 4 Hz. |
 | Tone | 0-100% | **50%** | Feedback path tone. Lower = darker repeats (more high-frequency loss per echo). Higher = brighter repeats. |
 
 ### Tips
@@ -482,7 +482,7 @@ This is the only modulation effect in the chain that modulates **amplitude**, no
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Rate | 0.3-12 Hz (quadratic) | **~2.2 Hz** | LFO speed. The classic guitar-tremolo sweet spot is around 5-7 Hz. |
-| Depth | 0-100% | **50%** | Modulation amount. 0% = off, 100% = approaches gating (silence at trough). |
+| Depth | 0-100% | **50%** | Modulation amount. 0% = no modulation in any mode. 100% = full swing: Photo nearly gates at the trough, Bias dips about 10 dB, Harmonic trades the lows against the highs. |
 | Mode | Photo / Bias / Harmonic | **Photo** | Tremolo topology (see below). Each mode has its own character. |
 | Width | 0-150 deg | **0 deg** | Stereo width. 0 = mono. Higher values offset the right channel's LFO phase for stereo motion. Capped at 150 deg so the effect doesn't collapse to nothing in mono. |
 | Output | -12 to +12 dB | **0 dB** | Make-up gain. Useful to compensate for any perceived volume drop at high depth, or to balance levels between presets. |
