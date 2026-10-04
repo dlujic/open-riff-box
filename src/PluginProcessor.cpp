@@ -469,9 +469,10 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     if (xml == nullptr || !xml->hasTagName("OpenRiffBoxState"))
         return;
 
-    // State written before the cabinet sentinels were pinned stored them as
-    // 14/15. The attribute is absent from every such blob, hence the 0 default.
-    const bool legacyCabinets = xml->getIntAttribute("version", 0) < 3;
+    // State written before v3 has no version attribute, hence the 0 default.
+    // It stored the cabinet sentinels as 14/15 and, as released in 0.8.0, the
+    // Platinum master as a flat multiplier.
+    const bool legacyState = xml->getIntAttribute("version", 0) < 3;
 
     // audioActive is set per wrapper in the constructor - don't restore it
     limiterEnabled.store(xml->getBoolAttribute("limiterEnabled", true), std::memory_order_release);
@@ -621,7 +622,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             amp->setSpeakerDrive(static_cast<float>(ampXml->getDoubleAttribute("speakerDrive", 0.2)));
             {
                 int cab = ampXml->getIntAttribute("cabinetType", 0);
-                amp->setCabinetType(legacyCabinets ? AmpSimSilver::remapLegacyCabinet(cab) : cab);
+                amp->setCabinetType(legacyState ? AmpSimSilver::remapLegacyCabinet(cab) : cab);
                 restoreCustomIR(*amp, *ampXml);
             }
             amp->setBrightness(static_cast<float>(ampXml->getDoubleAttribute("brightness", 0.5)));
@@ -644,7 +645,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             amp2->setPresence(static_cast<float>(amp2Xml->getDoubleAttribute("presence", 0.70)));
             {
                 int cab = amp2Xml->getIntAttribute("cabinetType", 10);
-                amp2->setCabinetType(legacyCabinets ? AmpSimGold::remapLegacyCabinet(cab) : cab);
+                amp2->setCabinetType(legacyState ? AmpSimGold::remapLegacyCabinet(cab) : cab);
                 restoreCustomIR(*amp2, *amp2Xml);
             }
             amp2->setBrightness(static_cast<float>(amp2Xml->getDoubleAttribute("brightness", 0.6)));
@@ -663,11 +664,14 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             plat->setBass(static_cast<float>(platXml->getDoubleAttribute("bass", 0.5)));
             plat->setMid(static_cast<float>(platXml->getDoubleAttribute("mid", 0.5)));
             plat->setTreble(static_cast<float>(platXml->getDoubleAttribute("treble", 0.5)));
-            plat->setMaster(static_cast<float>(platXml->getDoubleAttribute("master", 0.3)));
+            // Remap only a stored value: the fallback is already a knob position
+            const auto master = static_cast<float>(platXml->getDoubleAttribute("master", 0.64));
+            plat->setMaster(legacyState && platXml->hasAttribute("master")
+                                ? AmpSimPlatinum::remapLegacyMaster(master) : master);
             plat->setGainMode(platXml->getIntAttribute("gainMode", 0));
             {
                 int cab = platXml->getIntAttribute("cabinetType", 0);
-                plat->setCabinetType(legacyCabinets ? AmpSimPlatinum::remapLegacyCabinet(cab) : cab);
+                plat->setCabinetType(legacyState ? AmpSimPlatinum::remapLegacyCabinet(cab) : cab);
                 restoreCustomIR(*plat, *platXml);
             }
             plat->setMicPosition(static_cast<float>(platXml->getDoubleAttribute("micPosition", 0.5)));

@@ -73,8 +73,10 @@ bool Preset::fromJson(const juce::var& json, Preset& result)
     result.name = root->getProperty("name").toString();
     result.author = root->getProperty("author").toString();
     result.date = root->getProperty("date").toString();
-    result.limiterEnabled = root->getProperty("limiterEnabled");
-    result.ampSimEngine = static_cast<int>(root->getProperty("ampSimEngine"));
+    // A missing key reads as 0/false, so these need explicit defaults: limiter
+    // on and Gold, as on a fresh instance
+    result.limiterEnabled = root->getProperties().getWithDefault("limiterEnabled", true);
+    result.ampSimEngine = static_cast<int>(root->getProperties().getWithDefault("ampSimEngine", 1));
     if (result.ampSimEngine < 0 || result.ampSimEngine > 2)
         result.ampSimEngine = 1;  // default Gold for old presets
 

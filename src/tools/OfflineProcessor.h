@@ -33,9 +33,9 @@
 //   Loads a preset JSON and runs the complete OpenRiffBoxProcessor chain.
 //   Legacy amp flags must not be combined with --chain-config.
 //   Prints applied config between ===CHAIN-CONFIG-BEGIN=== and ===CHAIN-CONFIG-END=== markers.
-//   The preset's limiterEnabled drives the output lookahead limiter; false
-//   renders the raw chain (no other limiting exists since the softLimit
-//   removal, C1 2026-07-03).
+//   The preset's limiterEnabled (absent = on) drives the output lookahead
+//   limiter; false renders the raw chain (no other limiting exists since the
+//   softLimit removal, C1 2026-07-03).
 //
 //   --gold-diag k=v[,k=v...]    Gold diagnostic overrides (see --help output
 //                               for keys), applied after the preset.
