@@ -13,7 +13,7 @@
     "Wah": { "bypassed": true, "position": 0.5, "coloration": false, "taperMode": 0 },
     "NoiseGate": { "bypassed": true, "threshold": -40.0, "attack": 0.001, "hold": 0.05, "release": 0.1, "range": -90.0 },
     "DiodeDrive": { "bypassed": true, "drive": 0.5, "tone": 0.5, "level": 0.5 },
-    "Distortion": { "bypassed": true, "drive": 0.5, "tone": 0.65, "level": 0.7, "mix": 0.2, "saturate": 0.5, "saturateEnabled": false, "mode": 0, "clipType": 1 },
+    "Distortion": { "bypassed": true, "drive": 0.5, "tone": 0.65, "level": 0.7, "mix": 0.8, "saturate": 0.5, "saturateEnabled": false, "mode": 0, "clipType": 1 },
     "AmpSimSilver": { "bypassed": true, "gain": 0.3, "bass": 0.5, "mid": 0.5, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "cabinetType": 0, "brightness": 0.5, "micPosition": 0.3, "cabTrim": 0.0 },
     "AmpSimGold": { "bypassed": true, "gain": 0.4, "bass": 0.5, "mid": 0.6, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "presence": 0.7, "cabinetType": 10, "brightness": 0.6, "micPosition": 0.5, "cabTrim": 0.0 },
     "AmpSimPlatinum": { "bypassed": true, "gain": 0.5, "ovLevel": 0.7, "bass": 0.5, "mid": 0.5, "treble": 0.5, "master": 0.64, "gainMode": 0, "cabinetType": 0, "micPosition": 0.5, "cabTrim": 0.0, "channel": 0, "boost": false, "inputLow": false, "normalBass": 0.5, "normalMid": 0.5, "normalTreble": 0.5, "normalLevel": 0.5 },

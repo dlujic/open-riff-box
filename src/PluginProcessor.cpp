@@ -598,7 +598,7 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             dist->setDrive(static_cast<float>(distXml->getDoubleAttribute("drive", 0.5)));
             dist->setTone(static_cast<float>(distXml->getDoubleAttribute("tone", 0.65)));
             dist->setLevel(static_cast<float>(distXml->getDoubleAttribute("level", 0.7)));
-            dist->setMix(static_cast<float>(distXml->getDoubleAttribute("mix", 0.2)));
+            dist->setMix(static_cast<float>(distXml->getDoubleAttribute("mix", 0.8)));
             dist->setSaturate(static_cast<float>(distXml->getDoubleAttribute("saturate", 0.5)));
             dist->setSaturateEnabled(distXml->getBoolAttribute("saturateEnabled", false));
             dist->setClipType(static_cast<Distortion::ClipType>(distXml->getIntAttribute("clipType", 1)));

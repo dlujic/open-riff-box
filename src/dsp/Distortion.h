@@ -59,7 +59,7 @@ private:
     float driveParam    = 0.5f;
     float toneParam     = 0.65f;
     float levelParam    = 0.7f;
-    float mixParam      = 0.2f;
+    float mixParam      = 0.8f;
     float saturateParam = 0.5f;
     std::atomic<bool> saturateEnabled { false };
     std::atomic<int> modeParam     { 0 };  // Mode::Overdrive

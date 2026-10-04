@@ -298,7 +298,7 @@ void Distortion::resetToDefaults()
     driveParam    = 0.5f;
     toneParam     = 0.65f;
     levelParam    = 0.70f;
-    mixParam      = 0.7f;
+    mixParam      = 0.8f;
     saturateParam = 0.5f;
     setSaturateEnabled(false);
 

@@ -91,7 +91,7 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
     };
     addAndMakeVisible(mixSlider);
 
-    mixSliderLabel.setText("Dry Mix", juce::dontSendNotification);
+    mixSliderLabel.setText("Mix", juce::dontSendNotification);
     mixSliderLabel.setFont(Theme::Fonts::small());
     mixSliderLabel.setColour(juce::Label::textColourId, Theme::Colours::textSecondary);
     mixSliderLabel.setJustificationType(juce::Justification::centredLeft);
@@ -179,7 +179,7 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
     driveKnob.setTooltip("Distortion intensity. Higher = more gain, more harmonics, more sustain.");
     toneKnob.setTooltip("Post-distortion low-pass filter. Lower = darker, higher = brighter.");
     levelKnob.setTooltip("Output volume after distortion.");
-    mixSlider.setTooltip("Blends clean signal with distorted signal. 0% = fully distorted.");
+    mixSlider.setTooltip("Blends distorted signal with clean. 0% = clean, 100% = fully distorted.");
     saturateToggle.setTooltip("Pre-distortion compressor. Evens out dynamics before clipping.");
     saturateSlider.setTooltip("Saturate amount - how much compression before the distortion stage.");
     clipSoftBtn.setTooltip("Gentle clipping - more headroom, smooth compression.");
@@ -331,7 +331,7 @@ void DistortionPanel::resized()
     modeSelector.setBounds(modeRow);
 
     //--------------------------------------------------------------------------
-    // Right column: workspace (Saturate, Dry Mix, Clipping, + future space)
+    // Right column: workspace (Saturate, Mix, Clipping, + future space)
     //--------------------------------------------------------------------------
 
     // Saturate toggle + slider
@@ -342,7 +342,7 @@ void DistortionPanel::resized()
 
     rightCol.removeFromTop(16);
 
-    // Dry Mix label + horizontal slider
+    // Mix label + horizontal slider
     mixSliderLabel.setBounds(rightCol.removeFromTop(16));
     mixSlider.setBounds(rightCol.removeFromTop(28));
 
