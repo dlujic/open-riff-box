@@ -19,13 +19,13 @@ and labeled **beta** -- lightly tested, reports welcome. If you play on either, 
 ## Features
 
 - **17 effects across 10 slots** - Compressor (3 modes), Wah (3 control modes), Noise Gate, Diode Drive, Distortion (4 modes), Amp Sim (3 engines), Analog Delay, Spring Reverb, Plate Reverb, Chorus, Flanger, Phaser, Vibrato, Tremolo, 3-Band EQ
-- **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (5-stage tube preamp, push-pull power amp, transformer, sag)
+- **3 amp sim engines** - Silver (lightweight, clean to crunch), Gold (full preamp + power amp circuit model), Platinum (two-channel tube amp model: OD and clean Normal channels, 5-stage tube preamp, push-pull power amp, transformer, sag)
 - **20 cabinet IRs** - Studio 57 to Irvine Edge, plus No Cabinet and custom IR loading
 - **Real-time processing** - Low-latency audio: ASIO/WASAPI on Windows, CoreAudio on macOS, ALSA + JACK on Linux
 - **Reorderable signal chain** - Move effects into any order, or reset to default
 - **Built-in tuner** - Pitch detection with analog VU-meter display
 - **Built-in metronome** - Woodblock click with accented downbeats, 30-300 BPM, tap tempo, time signatures (standalone only)
-- **Preset system** - Save, load, and quick-switch between 4 preset slots
+- **Preset system** - 13 loudness-matched factory presets; save, load, and quick-switch between 4 preset slots
 - **Portable** - No installer, no registry, no admin rights. Windows/Linux run from a single folder; macOS is a single app bundle (user presets live in `~/Library/Application Support/OpenRiffBox`)
 - **Zero dependencies** - No runtime redistributables. Statically linked on Windows; standard system libraries only elsewhere
 
@@ -71,9 +71,9 @@ Default effect order (user-reorderable):
 I -> Compressor -> Wah -> Diode Drive -> Distortion -> Amp Sim -> Noise Gate -> Delay -> Reverb -> Modulation -> EQ -> O
 ```
 
-Each effect can be independently bypassed. The chain includes an always-on input DC blocker and output soft limiter.
+Each effect can be independently bypassed. The chain includes an always-on input DC blocker and a switchable lookahead output limiter.
 
-Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors - switch between engines without losing your settings.
+Effects with multiple engines (Amp Sim, Reverb, Modulation) have an engine selector - switch between engines without losing your settings.
 
 ## Effects
 
@@ -83,9 +83,9 @@ Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors
 | Wah | GCB-95-style circuit model | Resonant sweep with pot-taper dead zones; Manual, Auto (LFO) and Envelope control modes |
 | Diode Drive | TS808-style circuit model | Op-amp + diode clipping, mid-focused overdrive |
 | Distortion | 4 modes | Overdrive, Tube Drive, Distortion, Metal (3-stage cascaded) |
-| Amp Sim | Silver | 3-band EQ, preamp boost, power amp, 14 cabinet IRs |
+| Amp Sim | Silver | Lightweight: 3-band EQ, preamp boost, power amp, speaker drive |
 | | Gold | Multi-stage preamp, circuit-modeled tone stack, push-pull power amp with NFB, power supply sag |
-| | Platinum | 5-stage tube preamp cascade, phase splitter, push-pull power amp, output transformer, thermal noise |
+| | Platinum | OD and clean Normal channels, 5-stage tube preamp cascade, phase splitter, push-pull power amp, output transformer, thermal noise |
 | Noise Gate | Full gate | Threshold, attack, hold, release, range, sidechain HPF, hysteresis |
 | Delay | BBD analog delay | Feedback saturation, clock-tracking filters, triple LFO modulation |
 | Reverb | Spring | Allpass chirp chain, FDN tank, 3 spring types |
@@ -151,7 +151,7 @@ open-riff-box/
 |   +-- preset/       # Preset management
 +-- presets/           # Factory and user presets (JSON)
 +-- resources/
-|   +-- fonts/        # Inter font family
+|   +-- fonts/        # Inter and Metal Mania fonts
 |   +-- irs/          # Cabinet impulse responses
 +-- docs/             # Documentation and roadmap
 ```

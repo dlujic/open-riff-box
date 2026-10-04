@@ -22,7 +22,7 @@
 +----------------------------------------------+
 |                   UI Layer                    |
 |  TopBar | ChainList | EffectDetailPanel |     |
-|  SidebarPanel (power + meter)                 |
+|  SidebarPanel (power, limiter, master, meter)|
 +----------------------------------------------+
 |              Effect Chain Manager              |
 |   (ordered list of effects, bypass, reorder)  |
@@ -55,7 +55,7 @@ Default order (10 visual rows):
 9: EQ                (utility)
 ```
 
-Effects with multiple engines (Amp Sim, Reverb, Modulation) use tabbed selectors. The inactive engine is always bypassed. Grouped engines move together during reorder.
+Effects with multiple engines (Amp Sim, Reverb, Modulation) have an engine selector. The inactive engine is always bypassed. Grouped engines move together during reorder.
 
 Users can reorder effects freely via the chain list's reorder mode. Custom order is saved in presets and plugin state. "Reset Order" restores the default.
 
@@ -67,7 +67,7 @@ Users can reorder effects freely via the chain list's reorder mode. Custom order
 
 3. **UI is decoupled from DSP.** DSP code in `src/dsp/` has zero UI dependencies. This separation makes VST export straightforward.
 
-4. **Presets use JSON.** Per-effect parameters, metadata, and optionally chain order. Plugin state (XML) also persists chain order.
+4. **Presets use JSON.** Per-effect parameters, metadata, and optionally chain order. Plugin state (XML) also persists chain order and the custom IR path.
 
 ### Project Structure
 
@@ -79,14 +79,14 @@ open-riff-box/
 |   +-- preset/       # Preset management
 +-- presets/           # Factory and user presets (JSON)
 +-- resources/
-|   +-- fonts/        # Inter font family
-|   +-- irs/          # 14 cabinet impulse responses
+|   +-- fonts/        # Inter and Metal Mania fonts
+|   +-- irs/          # 20 cabinet impulse responses
 +-- docs/             # Documentation and roadmap
 ```
 
 --
 
-## Current State (v0.9.0)
+## Current State (v0.9.1)
 
 17 effects across 10 slots, all implemented:
 
@@ -95,9 +95,9 @@ open-riff-box/
 - **Diode Drive** -- TS808-style circuit model with Newton-Raphson solver
 - **Distortion** -- 4 modes (Overdrive, Tube Drive, Distortion, Metal)
 - **Amp Sim** -- 3 engines:
-  - Silver: lightweight, 2x oversampled, clean to crunch
+  - Silver: lightweight, clean to crunch
   - Gold: multi-stage waveshaper preamp, circuit-modeled tone stack, push-pull power amp with NFB, power supply sag
-  - Platinum: 5-stage tube preamp cascade, phase splitter, push-pull power amp, output transformer, thermal noise (CPU-intensive)
+  - Platinum: two channels (OD + clean Normal), 5-stage tube preamp cascade, phase splitter, push-pull power amp, output transformer, thermal noise (CPU-intensive)
 - **Noise Gate** -- full gate with sidechain HPF and hysteresis
 - **Analog Delay** -- BBD model with feedback saturation and triple modulation
 - **Spring Reverb** -- allpass chirp chain + FDN tank, 3 spring types
@@ -109,7 +109,7 @@ open-riff-box/
 - **Tremolo** -- 3 modes: Photo (LDR comparator + asymmetric envelope), Bias (4x oversampled tanh + DC blocker), Harmonic (LR4 split at 400 Hz, antiphase bands). Mono-safe stereo width.
 - **EQ** -- 3-band semi-parametric with sweepable mid and output trim
 
-Additional features: built-in tuner, built-in metronome (standalone only; woodblock click, tap tempo, time signatures), preset system (save/load, quick-access slots with persisted assignments, modified-preset indicator), 13 loudness-matched factory presets, reorderable signal chain, 14 cabinet IRs + custom IR loading, output limiter.
+Additional features: built-in tuner, built-in metronome (standalone only; woodblock click, tap tempo, time signatures), preset system (save/load, quick-access slots with persisted assignments, modified-preset indicator), 13 loudness-matched factory presets, reorderable signal chain, 20 cabinet IRs (six of them house captures) + custom IR loading with per-engine cab trim, switchable lookahead output limiter.
 
 Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (beta). Standalone + VST3 on all three.
 
@@ -120,23 +120,22 @@ Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (b
 ### Sound Quality
 - Platinum Normal channel polish -- grid-conduction clamp for noise at high LEVEL settings, channel level matching (factory preset levels recalibrate afterwards)
 - Platinum engine polish (parameter response tuning, possible CPU optimization)
-- In-house cabinet IR recording to replace the current placeholder set
+- More in-house cabinet IRs to replace the original placeholder set (six house captures ship so far)
 - Knob response curves (logarithmic/S-curve mappings for more musical parameter feel)
-- Parallel mix law for Delay/Reverb (low priority, exploratory) -- optional dry-at-unity
-  mix mode (aux-send style: dry stays untouched, wet layers on top) instead of the
-  equal-power crossfade. Mimics console aux routing for time-based effects. Spends
+- Parallel mix law for the reverbs (low priority, exploratory) -- optional dry-at-unity
+  mix mode (aux-send style: dry stays untouched, wet layers on top, as the Analog Delay
+  already works) instead of the equal-power crossfade. Mimics console aux routing for time-based effects. Spends
   headroom, so it wants the input trim to land first. Try it and judge by ear.
 
 ### UI & Workflow
 - Default chain order tweak -- modulation block ahead of delay
 - Preset browser: mark presets assigned to quick slots
 - Settings sub-sections -- keybinds, MIDI mappings, preset categories
-- Per-effect documentation (docs/effects.md)
 
 ### DAW Integration
-- VST3 plugin polish (works on Windows, some quirks to iron out)
+- VST3 plugin polish (tail length and latency reporting to the host, among other quirks)
 - VST3 parameter automation audit (click/zipper noise on parameter changes)
-- Persist app settings in VST3 too (quick-slot assignments, tooltips, custom IR paths are standalone-only today)
+- Persist app settings in VST3 too (quick-slot assignments and tooltips are standalone-only today)
 - Global input trim + meter guidance -- the chain is voiced for instrument-level input
   (peaks around -20 dBFS). Line-level or pre-processed signals (an amp sim upstream in
   the DAW chain, FX-only use behind another rig) run ~20 dB hot, pin the output limiter,

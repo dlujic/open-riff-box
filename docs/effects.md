@@ -51,9 +51,9 @@ Cuts signal below a threshold to eliminate hum, buzz, and noise between playing.
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Threshold | -80 to 0 dB | **-40 dB** | Signal level below which the gate closes. Lower = more sensitive (lets quieter signals through). |
-| Attack | 0.1 to 50 ms | **1 ms** | How quickly the gate opens when signal exceeds threshold. |
+| Attack | 0.1 to 16 ms | **1 ms** | How quickly the gate opens when signal exceeds threshold. |
 | Hold | 0 to 500 ms | **50 ms** | How long the gate stays open after signal drops below threshold before starting to close. |
-| Release | 5 to 2000 ms | **100 ms** | How long the gate takes to fully close after hold expires. |
+| Release | 5 to 600 ms | **100 ms** | How long the gate takes to fully close after hold expires. |
 | Range | -90 to 0 dB | **-90 dB** | How much the gate attenuates when closed. -90 dB = full silence. Higher values (e.g. -20 dB) let some signal bleed through for a more natural feel. |
 
 ### Tips
@@ -81,7 +81,7 @@ Toe (0%) is bright and high, heel (100%) is dark and low. That is the pedal's re
 | Mode | Manual / Auto / Envelope | **Manual** | What drives the sweep (see below). |
 | Wave | Sine / Triangle | **Sine** | Auto mode only. Sine is a smooth, rounded sweep; Triangle is linear travel with sharper turnarounds. |
 | Rate | 0.1-10 Hz | **2.1 Hz** | Auto mode only. Sweep speed. |
-| Depth | 0-100% | **50%** | Auto mode only. How far the sweep travels either side of Center. At 100% it covers the full treadle range. |
+| Depth | 0-100% | **50%** | Auto mode only. How far the sweep travels either side of Center. At 100% with Center at 50% it covers the full treadle range; move Center off the middle and the sweep runs into the end of the pedal's travel. |
 | Sens | 0-100% | **50%** | Envelope mode only. How hard a pick attack pushes the filter away from Rest. |
 | Attack | 1-50 ms | **10 ms** | Envelope mode only. How quickly the filter chases a rising pick attack. |
 | Release | 20-500 ms | **150 ms** | Envelope mode only. How quickly it falls back toward Rest as the note decays. |
@@ -90,7 +90,7 @@ Toe (0%) is bright and high, heel (100%) is dark and low. That is the pedal's re
 
 ### Modes
 
-- **Manual** -- Position sets a fixed filter point and leaves it there. This is a wah parked at one spot on the treadle, which is a sound in its own right (that cocked, nasal midrange honk you hear all over funk and 70s rock) as much as it is a starting point for automating the knob from a host.
+- **Manual** -- Position sets a fixed filter point and leaves it there. This is a wah parked at one spot on the treadle, which is a sound in its own right: that cocked, nasal midrange honk you hear all over funk and 70s rock.
 
 - **Auto** -- An LFO sweeps the filter around Center at Rate, travelling Depth either side of it. Set Center where you want the sweep to live, then Depth for how far it roams. Wave picks the shape: Sine turns around smoothly, Triangle runs at constant speed and snaps at the ends.
 
@@ -100,7 +100,7 @@ Toe (0%) is bright and high, heel (100%) is dark and low. That is the pedal's re
 
 - **Dead Zones** (default) -- Models the mechanical dead travel of the real pedal: roughly 15-20% at each end of the treadle never actually rotates the pot. Toe, middle and heel land near 1520 / 760 / 450 Hz. This is what a real Cry Baby feels like under your foot, and it keeps the extremes from being uselessly thin or muddy.
 
-- **Linear** -- The raw electrical sweep, edge to edge: 2200 Hz at the toe down to 410 Hz at the heel. Wider, and more useful when you're automating Position from a host or want the full range out of the Auto LFO.
+- **Linear** -- The raw electrical sweep, edge to edge: 2200 Hz at the toe down to 410 Hz at the heel. Wider, and more useful when you want the full range out of the Auto LFO.
 
 ### Tips
 
@@ -125,11 +125,11 @@ This is a mid-focused overdrive -- it boosts mids, tames lows, and rolls off hig
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Drive | 0-100% | **50%** | Controls the feedback resistance, which sets distortion intensity. At low values you get a clean boost with mid emphasis. At high values, full diode clipping. |
-| Level | 0-100% | **70%** | Output volume. |
+| Level | -inf to +6 dB | **-27 dB** | Output volume. |
 
 ### Tips
 
-- **Clean boost into amp sim:** Drive 10-25%, Level 70-80%. Pushes the Amp Sim's preamp harder without adding much distortion of its own.
+- **Clean boost into amp sim:** Drive 10-25%, Level around -14 to -7 dB. Pushes the Amp Sim's preamp harder without adding much distortion of its own.
 - **Classic overdrive:** Drive 40-60%. The sweet spot -- warm, singing sustain with mid emphasis.
 - **Maxed out:** Drive 80-100%. Heavy saturation, compressed, thick. Great for leads.
 - **Stacking with Distortion:** Keep Drive low (15-30%) and let it feed into Distortion for tighter bass and more mid presence. The chain order does this automatically -- just enable both. This is how many players use a tubescreamer-style pedal.
@@ -140,13 +140,13 @@ This is a mid-focused overdrive -- it boosts mids, tames lows, and rolls off hig
 
 Four distortion modes ranging from mild overdrive to extreme metal. All modes use 4x oversampling to prevent aliasing artifacts.
 
-Signal chain: Pre-HPF (100 Hz) -> Waveshaper -> Post-processing -> DC blocker -> Tone LPF -> Output level -> Dry/wet mix.
+Signal chain: Pre-HPF (140 Hz Overdrive, 100 Hz Tube Drive, 250 Hz Distortion) -> Saturate (if on) -> Drive -> Waveshaper -> DC blocker -> Tone LPF -> Output level -> Dry/wet mix. Metal mode runs its own chain (75 Hz pre-HPF, no dry/wet mix) and keeps its own Drive, Tone and Level settings.
 
 ### Modes
 
 - **Overdrive** -- Mild, amp-like breakup. Good for blues and classic rock. Includes a mid-hump EQ and pre-clip LPF to soften the top end.
 - **Tube Drive** -- Warmer, more compressed overdrive with tube-like asymmetric clipping. More sustain than Overdrive.
-- **Distortion** -- Two-stage cascaded clipping with interstage filtering. Tighter, more aggressive. Includes auto-darkening (the LPF tracks drive amount to prevent fizz at high gain).
+- **Distortion** -- Three cascaded clipping stages (soft, hard, soft) with filtering between them. Tighter, more aggressive. Includes auto-darkening (the LPF tracks drive amount to prevent fizz at high gain).
 - **Metal** -- Three-stage cascaded high-gain distortion. Five post-filters sculpt an aggressive, tight sound. Built-in noise floor expander kills the fizz tail.
 
 ### Parameters
@@ -155,11 +155,11 @@ Signal chain: Pre-HPF (100 Hz) -> Waveshaper -> Post-processing -> DC blocker ->
 |-----------|-------|---------|-------------|
 | Drive | 0-100% | **50%** | Distortion intensity. Higher = more gain, more harmonics, more sustain. |
 | Tone | 0-100% | **65%** | Post-distortion low-pass filter. Lower = darker, warmer. Higher = brighter, more bite. |
-| Level | 0-100% | **70%** | Output volume after distortion. |
+| Level | -inf to +6 dB | **-13.8 dB** | Output volume after distortion. |
 | Mode | Overdrive / Tube Drive / Distortion / Metal | **Overdrive** | Distortion character (see above). |
 | Dry Mix | 0-100% | **20%** | Blends clean signal with distorted signal using equal-power crossfade. 0% = fully distorted. |
 | Clipping | Gentle / Warm / Sharp / Aggro | **Warm** | Tube clip hardness (Overdrive and Tube Drive modes only). Gentle = more headroom, smooth compression. Aggro = sharp knee, nearly hard-clips. |
-| Saturate | On/Off + 0-100% | **Off, 50%** | Pre-distortion compressor. Evens out dynamics before clipping. Useful for tighter, more consistent distortion at any drive level. |
+| Saturate | On/Off + 0-100% | **Off, 50%** | Overdrive and Tube Drive modes only. Pre-distortion compressor. Evens out dynamics before clipping. Useful for tighter, more consistent distortion at any drive level. |
 
 ### Tips
 
@@ -174,23 +174,24 @@ Signal chain: Pre-HPF (100 Hz) -> Waveshaper -> Post-processing -> DC blocker ->
 
 ## Amp Sim
 
-Full amplifier simulation with three engine options: **Silver**, **Gold**, and **Platinum**. Switch between engines using the tabs at the top of the Amp Sim panel. All three share the same 14 cabinet IRs.
+Full amplifier simulation with three engine options: **Silver**, **Gold**, and **Platinum**. Pick an engine with the Silver / Gold / Platinum buttons on the right side of the Amp Sim panel (Gold is selected by default). All three share the same 20 cabinet IRs.
 
 ### Silver Engine
 
-Lightweight amp sim with 3-band EQ, preamp boost, power amp stage, and cabinet simulation. 2x oversampled. Good for clean to moderate crunch tones with low CPU usage.
+Lightweight amp sim with 3-band EQ, preamp boost, power amp stage, and cabinet simulation. The power amp and speaker stages run 16x oversampled. Good for clean to moderate crunch tones with low CPU usage.
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Gain | 0-100% | **30%** | Preamp input drive. Controls how hard you push the amp. |
-| Bass | 0-100% | **50%** | Low shelf EQ at 150 Hz. +/-12 dB range. 50% = flat. |
-| Mid | 0-100% | **50%** | Peaking EQ at 800 Hz (Q=0.8). +/-12 dB range. 50% = flat. |
-| Treble | 0-100% | **50%** | High shelf EQ at 3 kHz. +/-12 dB range. 50% = flat. |
+| Bass | -12 to +12 dB | **0 dB** | Low shelf EQ at 150 Hz. 0 dB = flat. |
+| Mid | -12 to +12 dB | **0 dB** | Peaking EQ at 800 Hz (Q=0.8). 0 dB = flat. |
+| Treble | -12 to +12 dB | **0 dB** | High shelf EQ at 3 kHz. 0 dB = flat. |
 | Pre Boost | On/Off | **Off** | +12 dB preamp boost with soft saturation. Pushes the signal into breakup. |
-| Speaker Drive | 0-100% | **20%** | Power amp and speaker distortion amount. Adds warmth, compression, and even harmonics. |
-| Cabinet | 14 presets + None + Custom | **Studio 57** | Speaker cabinet impulse response (see list below). |
+| Speaker Drive | 0-100% | **20%** | Speaker cone saturation. Adds warmth and compression on top of the power amp stage. |
+| Cabinet | 20 IRs + No Cabinet + Custom | **Studio 57** | Speaker cabinet impulse response (see list below). **Load IR...** loads your own WAV. |
+| Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
 | Brightness | 0-100% | **50%** | Post-cab brightness. Lower = darker, rolled-off top end. Higher = full brightness. |
-| Mic | 0-100% | **30%** | Simulates mic placement. Low = close/dark, high = bright/airy. Neutral at 50%. |
+| Mic | -4 to +4 dB | **-1.6 dB** | Simulates mic placement. Lower = close/dark, higher = bright/airy. 0 dB = neutral. |
 
 ### Gold Engine
 
@@ -202,35 +203,40 @@ Higher-fidelity amp model with a multi-stage waveshaper preamp, circuit-modeled 
 | Bass | 0-100% | **50%** | Tone stack bass. Circuit-modeled 3rd-order IIR filter. |
 | Mid | 0-100% | **60%** | Tone stack mid. |
 | Treble | 0-100% | **50%** | Tone stack treble. |
-| Pre Boost | On/Off | **Off** | Gain stage boost before the preamp. |
+| Pre Boost | On/Off | **Off** | About +3.5 dB of extra drive into the preamp. |
 | Speaker Drive | 0-100% | **20%** | Power amp saturation with push-pull even harmonics. |
-| Presence | 0-100% | **70%** | Negative feedback loop cutoff. Controls upper-mid clarity and bite. |
-| Cabinet | 14 presets + None + Custom | **Studio 57** | Speaker cabinet impulse response. |
+| Presence | 0-100% | **70%** | Negative feedback loop cutoff. Controls upper-mid clarity and bite. Higher = brighter. |
+| Cabinet | 20 IRs + No Cabinet + Custom | **Plexi Roar** | Speaker cabinet impulse response. **Load IR...** loads your own WAV. |
+| Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
 | Brightness | 0-100% | **60%** | Post-cab brightness overlay. |
-| Mic | 0-100% | **50%** | Mic position simulation. |
+| Mic | -4 to +4 dB | **0 dB** | Mic position simulation. 0 dB = neutral. |
 
 ### Platinum Engine
 
-Full tube amp circuit model -- five cascaded 12AX7 triode preamp stages, a long-tailed pair phase splitter, and EL34 push-pull power amp with negative feedback loop. Includes coupling cap filters, Miller capacitance, power supply sag, output transformer, and thermal noise. 4x oversampled. The most detailed and CPU-intensive engine.
+Full tube amp circuit model with two channels: **OD** and **Normal** (clean). The OD channel runs five cascaded 12AX7 triode preamp stages; the Normal channel skips the second one and has its own voicing network. Both feed the tone stack, a long-tailed pair phase splitter, and an EL34 push-pull power amp with a negative feedback loop. Includes coupling cap filters, Miller capacitance, power supply sag, output transformer, and thermal noise. 4x oversampled. The most detailed and CPU-intensive engine.
 
 > **Note:** Platinum is computationally heavy. On modest hardware you may notice higher CPU usage, especially at lower buffer sizes. If you experience audio dropouts, try increasing your buffer size or switching to Gold or Silver.
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Gain | 0-100% | **50%** | Preamp input gain (first triode stage). |
-| OV Level | 0-100% | **70%** | Overdrive level attenuator between preamp and tone stack. Controls how much preamp signal hits the power section. |
-| Bass | 0-100% | **50%** | Tone stack bass. |
+| Channel | OD / NORMAL | **OD** | Picks the overdrive channel or the clean Normal channel. Controls that don't apply to the selected channel are greyed out. |
+| Gain | 0-100% | **50%** | OD channel only. Gain pot after the first triode -- sets how hard the rest of the preamp is driven. |
+| OV Level | 0-100% | **70%** | OD channel only. Level control ahead of the last preamp triode. Lower it to tame the OD channel, raise it to hit the last stage and the power amp harder. |
+| Gain Mode | GAIN1 / GAIN2 | **GAIN1** | OD channel only. GAIN1 is the lower gain mode (clean to crunch), GAIN2 the high gain mode. |
+| Level | 0-100% | **50%** | Normal channel only. Channel volume with the bright cap built in: lower settings are quieter and brighter, and the lows fill in as you turn it up. |
+| Boost | CLEAN / BOOST | **CLEAN** | Normal channel only. BOOST runs the channel about 9 dB hotter. |
+| Bass | 0-100% | **50%** | Tone stack bass. Each channel remembers its own Bass, Mid and Treble; the knobs show the selected channel's settings. |
 | Mid | 0-100% | **50%** | Tone stack mid. |
 | Treble | 0-100% | **50%** | Tone stack treble. |
-| Master | 0-100% | **30%** | Master volume before the phase splitter and power amp. |
-| Speaker Drive | 0-100% | **30%** | Power amp saturation amount. |
-| Gain Mode | GAIN1 / GAIN2 | **GAIN1** | Preamp routing mode. GAIN2 uses an alternate signal path for a different voicing. |
-| Cabinet | 14 presets + None + Custom | **Studio 57** | Speaker cabinet impulse response. |
-| Mic | 0-100% | **50%** | Mic position simulation. |
+| Master | 0-100% | **64%** | Master volume ahead of the phase splitter and power amp. Audio taper like the real pot, so most of the change happens in the top half of the travel. Both channels. |
+| Input | HIGH / LOW | **HIGH** | Input jack. LOW pads the input by 6 dB. Both channels. |
+| Cabinet | 20 IRs + No Cabinet + Custom | **Studio 57** | Speaker cabinet impulse response. **Load IR...** loads your own WAV. |
+| Cab Trim | -12 to +12 dB | **0 dB** | Cabinet volume trim, on top of the automatic IR level normalization. |
+| Mic | -4 to +4 dB | **0 dB** | Mic position simulation. Lower = close/dark, higher = bright/airy. |
 
 ### Cabinet IRs
 
-All three engines share the same set of 20 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file.
+All three engines share the same set of 20 speaker cabinet impulse responses. You can also select "No Cabinet" for a raw amp tone, or load a custom IR from a WAV file with **Load IR...**. A custom IR uses the file's first channel, has its silent tail trimmed, and is level-normalized like the built-in ones; use Cab Trim to fine-tune its volume.
 
 The three Hanwell cabs are house captures of a small British valve combo, mic'd at three positions on the same speaker. The three Irvine cabs are the same idea on a 50 W 1x12 American tube combo.
 
@@ -259,11 +265,12 @@ The three Hanwell cabs are house captures of a small British valve combo, mic'd 
 
 ### Tips
 
-- **Clean amp:** Silver engine, Gain 20-40%, all EQ at 50%, Pre Boost off, Speaker Drive 0-10%. Let the cabinet IR do the work.
+- **Clean amp:** Silver engine, Gain 20-40%, all EQ at 0 dB, Pre Boost off, Speaker Drive 0-10%. Let the cabinet IR do the work.
 - **Crunchy rhythm:** Gold engine, Gain 40-60%, Pre Boost on, Speaker Drive 20-40%.
 - **High gain:** Use Distortion or Diode Drive *before* the Amp Sim for extra gain. Keep Amp Sim gain moderate (30-50%) and let Speaker Drive add warmth (20-40%).
-- **Full tube experience:** Platinum engine, Gain 50-70%, Master 30-50%, Speaker Drive 30-50%. Use OV Level to control how hard the preamp pushes the power section.
-- **Low CPU:** Silver engine uses 2x oversampling vs 4x for Gold/Platinum. If CPU is tight, Silver is your friend.
+- **Full tube experience:** Platinum engine, OD channel, Gain 50-70%, Master around 65-75%. Use OV Level to control how hard the preamp pushes the power section.
+- **Platinum cleans:** Switch Platinum to the Normal channel. Level sets the volume and the brightness together; flip Boost for more push without leaving the clean channel.
+- **Low CPU:** Silver is the lightest engine. If CPU is tight, Silver is your friend.
 
 ---
 
@@ -278,19 +285,19 @@ Uses cubic Hermite interpolation for smooth fractional delay reads.
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
 | Time | 20-400 ms (logarithmic) | **~200 ms** | Delay time. The scale is logarithmic -- more resolution at shorter times. |
-| Intensity | 0-100% | **35%** | Feedback amount -- how many repeats. Higher values give more echoes. Above ~80% the delay starts to self-oscillate (with saturation). |
-| Echo | 0-100% | **50%** | Wet/dry mix. 0% = fully dry, 100% = fully wet. |
+| Intensity | 0-100% | **35%** | Feedback amount -- how many repeats. Higher values give more echoes. Near the top of the range the repeats take a long time to fade, but the saturation in the loop keeps them from running away. |
+| Echo | 0-100% | **50%** | Echo level. The dry signal always passes at full level; Echo sets how loud the repeats are on top of it. 0% = no repeats. |
 | Mod | 0-5 ms | **30%** | Modulation intensity -- how much the delay time wobbles. Adds chorus-like movement. |
 | Rate | 0.1-5.0 Hz | **30%** | Modulation speed. Higher = faster wobble. |
 | Tone | 0-100% | **50%** | Feedback path tone. Lower = darker repeats (more high-frequency loss per echo). Higher = brighter repeats. |
 
 ### Tips
 
-- **Slapback:** Time ~80 ms, Intensity 15-25%, Echo 40-50%, Mod Depth 0%. Quick single repeat.
-- **Classic analog:** Time 200-300 ms, Intensity 30-45%, Echo 40-50%, Mod Depth 20-30%. Warm, dark repeats that fade naturally.
-- **Ambient wash:** Time 350-400 ms, Intensity 50-65%, Echo 50-60%, Mod Depth 40-50%, Tone 30-40%. Lush, swirling tails.
-- **Self-oscillation:** Push Intensity above 80%. The feedback saturates so it won't blow up, but it will create runaway oscillation effects. Fun for noise/ambient.
-- **Clean repeats:** Keep Mod Depth at 0% and Tone at 60-70% for more "digital-sounding" repeats from an analog circuit.
+- **Slapback:** Time ~80 ms, Intensity 15-25%, Echo 40-50%, Mod 0. Quick single repeat.
+- **Classic analog:** Time 200-300 ms, Intensity 30-45%, Echo 40-50%, Mod 20-30%. Warm, dark repeats that fade naturally.
+- **Ambient wash:** Time 350-400 ms, Intensity 50-65%, Echo 50-60%, Mod 40-50%, Tone 30-40%. Lush, swirling tails.
+- **Long trails:** Push Intensity above 80%. The repeats hang on for a long time and smear into each other, and the feedback saturation keeps them from building up. Fun for noise/ambient.
+- **Clean repeats:** Keep Mod at 0 and Tone at 60-70% for more "digital-sounding" repeats from an analog circuit. A trace of wow and flutter stays even at 0, as on the real thing.
 
 ---
 
@@ -322,7 +329,7 @@ Perceptual spring reverb model using a 120-section stretched allpass chirp chain
 - **Surf:** Short spring, Dwell 60-70%, Decay 40-50%, Drip 60-80%, Mix 40-50%. Splash!
 - **Ambient clean:** Long spring, Dwell 30-40%, Decay 60-70%, Drip 20-30%, Mix 30-40%, Tone 40-50%.
 - **Just a touch:** Medium spring, Dwell 40%, Decay 40%, Drip 30%, Mix 15-25%. Adds space without muddiness.
-- **Drip control:** The Drip knob is the key personality control. At 0% the chirp chain output is minimal and you mostly hear the FDN tank -- smooth, diffuse reverb. At 100% the spring character dominates with metallic transients.
+- **Drip control:** The Drip knob is the key personality control. At 0% the chirp chain barely disperses the signal, so you mostly hear the smooth, diffuse tank. At 100% the dispersion is at its strongest and the metallic spring chirp dominates.
 - **Works best with:** Clean and crunch tones. High-gain distortion tends to make any reverb muddy -- use lower Mix and Decay for distorted signals.
 
 ---
@@ -372,15 +379,15 @@ No feedback -- this is a clean, single-pass chorus (not a flanger).
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Rate | 0.3-4.0 Hz (logarithmic) | **~0.9 Hz** | LFO speed. Slower = gentle swaying. Faster = vibrato-like warble. |
+| Rate | 0.3-4.0 Hz (quadratic) | **~0.6 Hz** | LFO speed. Slower = gentle swaying. Faster = vibrato-like warble. |
 | Depth | 0.5-5.0 ms | **~2.3 ms** | Modulation depth -- how far the delay time sweeps. More depth = more dramatic detuning. |
-| Tone | 800 Hz-12 kHz | **70%** | Wet signal filter. Variable LPF from 800 Hz (dark) to 12 kHz (bright). Controls the brightness of the chorus effect only, not the dry signal. |
-| Mix | 0-100% | **50%** | Wet/dry mix. Effect level blended with dry signal. |
+| Tone | 800 Hz-12 kHz | **~5.3 kHz** | Wet signal filter. Variable LPF from 800 Hz (dark) to 12 kHz (bright). Controls the brightness of the chorus effect only, not the dry signal. |
+| Mix | 0-100% | **50%** | Wet/dry mix with equal-power crossfade. 0% = dry only, 100% = wet only. |
 
 ### Tips
 
 - **Subtle shimmer:** Rate 0.5-0.8 Hz, Depth 1.0-2.0 ms, Mix 30-40%. Gentle, always-on widening.
-- **Classic 80s:** Rate 0.8-1.2 Hz, Depth 2.5-3.5 ms, Mix 50-60%, Tone 60-70%.
+- **Classic 80s:** Rate 0.8-1.2 Hz, Depth 2.5-3.5 ms, Mix 50-60%, Tone 4-5.3 kHz.
 - **Deep and watery:** Rate 0.4-0.6 Hz, Depth 4.0-5.0 ms, Mix 50-60%. Slow, seasick modulation.
 - **Stereo width:** The chorus produces stereo output with 180-degree LFO phase offset between channels. Headphones or stereo speakers will reveal the full width.
 
@@ -396,21 +403,21 @@ Triangle LFO with 90-degree stereo offset.
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Rate | 0-100% | **20%** | LFO speed (0.05-10 Hz, quadratic scaling for more resolution at slow speeds). |
-| Depth | 0-100% | **35%** | Modulation depth (0.1-4.0 ms). How far the delay sweeps around the center point. |
-| Manual | 0-100% | **30%** | Center delay time (0.5-10 ms). Sets the base frequency of the comb filter. Lower = more metallic, higher = more chorus-like. |
+| Rate | 0.05-10 Hz (quadratic) | **~0.4 Hz** | LFO speed. The quadratic scaling gives more resolution at slow speeds. |
+| Depth | 0.1-4.0 ms | **~1.5 ms** | Modulation depth. How far the delay sweeps around the center point. |
+| Manual | 0.5-10 ms | **~3.4 ms** | Center delay time. Sets the base frequency of the comb filter. Lower = more metallic, higher = more chorus-like. |
 | Feedback | 0-100% | **45%** | Feedback intensity. Higher values create sharper, more resonant comb filter peaks. |
-| Polarity | +/- | **+** | Feedback sign. Positive (+) reinforces the fundamental for a fuller sound. Negative (-) cancels it for a hollow, nasal "through-zero" character. |
-| EQ | 0-100% | **70%** | Wet signal LPF (800 Hz-12 kHz). Tames brightness in the flanged signal. |
+| Polarity | Positive (jet) / Negative (hollow) | **Positive** | Feedback sign. Positive reinforces the fundamental for a fuller sound. Negative cancels it for a hollow, nasal character. |
+| Tone | 800 Hz-12 kHz | **~5.3 kHz** | Wet signal LPF. Tames brightness in the flanged signal. |
 | Mix | 0-100% | **50%** | Wet/dry mix with equal-power crossfade. |
 
 ### Tips
 
-- **Classic jet sweep:** Rate 15-25%, Depth 30-50%, Manual 20-30%, Feedback 40-60%, Polarity +.
-- **Through-zero hollow:** Same as above but Polarity -. The sound thins out dramatically at the sweep bottom.
-- **Slow and dramatic:** Rate 5-10%, Depth 40-60%, Feedback 50-70%. Long, sweeping jet-plane effect.
-- **Metallic resonance:** Manual 10-20% (short center delay), Feedback 60-80%. Creates pitched, ringing tones.
-- **Subtle width:** Rate 10-15%, Depth 15-25%, Feedback 20-30%, Mix 30-40%. Gentle stereo movement without obvious flanging.
+- **Classic jet sweep:** Rate 0.3-0.7 Hz, Depth 1.3-2.0 ms, Manual 2.4-3.4 ms, Feedback 40-60%, Polarity Positive.
+- **Hollow sweep:** Same as above but Polarity Negative. The sound thins out dramatically at the sweep bottom.
+- **Slow and dramatic:** Rate around 0.1 Hz, Depth 1.7-2.4 ms, Feedback 50-70%. Long, sweeping jet-plane effect.
+- **Metallic resonance:** Manual 1.5-2.4 ms (short center delay), Feedback 60-80%. Creates pitched, ringing tones.
+- **Subtle width:** Rate 0.2-0.3 Hz, Depth 0.7-1.1 ms, Feedback 20-30%, Mix 30-40%. Gentle stereo movement without obvious flanging.
 
 ---
 
@@ -424,7 +431,7 @@ Triangle LFO with 5% stereo offset for subtle width.
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Rate | 0-100% | **15%** | LFO speed (0.05-10 Hz, quadratic scaling). |
+| Rate | 0.05-10 Hz (quadratic) | **~0.27 Hz** | LFO speed. |
 | Depth | 0-100% | **50%** | Sweep depth -- how wide the notch frequencies move. 0% = static, 100% = full 100-4000 Hz sweep. |
 | Feedback | 0-100% | **30%** | Feedback intensity. Sharpens the notches for a more pronounced, resonant effect. |
 | Mix | 0-100% | **50%** | Wet/dry mix with equal-power crossfade. |
@@ -432,10 +439,10 @@ Triangle LFO with 5% stereo offset for subtle width.
 
 ### Tips
 
-- **Classic phaser:** Classic stages, Rate 10-20%, Depth 40-60%, Feedback 30-50%. Smooth, musical sweep.
-- **Thick and swirly:** Rich stages, Rate 10-15%, Depth 50-70%, Feedback 40-60%. Denser notch pattern.
-- **Deep space:** Deep stages, Rate 5-10%, Depth 60-80%, Feedback 50-70%. Dramatic, complex modulation.
-- **Subtle shimmer:** Classic stages, Rate 8-12%, Depth 20-30%, Feedback 15-25%, Mix 30-40%. Gentle movement that doesn't overwhelm the tone.
+- **Classic phaser:** Classic stages, Rate 0.15-0.45 Hz, Depth 40-60%, Feedback 30-50%. Smooth, musical sweep.
+- **Thick and swirly:** Rich stages, Rate 0.15-0.27 Hz, Depth 50-70%, Feedback 40-60%. Denser notch pattern.
+- **Deep space:** Deep stages, Rate 0.07-0.15 Hz, Depth 60-80%, Feedback 50-70%. Dramatic, complex modulation.
+- **Subtle shimmer:** Classic stages, Rate 0.11-0.19 Hz, Depth 20-30%, Feedback 15-25%, Mix 30-40%. Gentle movement that doesn't overwhelm the tone.
 - **Resonant sweep:** Any stage count, Feedback 60-80%. Creates sharper, more vocal-like resonant peaks. Careful -- high feedback can get intense.
 
 ---
@@ -450,16 +457,16 @@ This is a 100% wet effect by design -- it modulates pitch, not amplitude. For pi
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Rate | 0-100% | **50%** | LFO speed (0.5-10 Hz, quadratic scaling). |
+| Rate | 0.5-10 Hz (quadratic) | **~2.9 Hz** | LFO speed. |
 | Depth | 0-100% | **30%** | Pitch excursion (0.1-3.0 ms). Higher = wider pitch wobble. |
 | Tone | 0-100% | **70%** | Output LPF (800 Hz-12 kHz). Controls brightness of the vibrato signal. |
 
 ### Tips
 
-- **Gentle warble:** Rate 30-40%, Depth 15-25%. Subtle pitch movement -- nice for cleans.
-- **Classic vibrato:** Rate 45-60%, Depth 25-40%. Noticeable pitch wobble, musical and expressive.
-- **Seasick:** Rate 15-25%, Depth 50-70%. Slow, deep pitch swings. Lo-fi and woozy.
-- **Fast shimmer:** Rate 70-85%, Depth 10-20%. Rapid, tight vibrato -- almost Leslie-like at the extremes.
+- **Gentle warble:** Rate 1.4-2.0 Hz, Depth 15-25%. Subtle pitch movement -- nice for cleans.
+- **Classic vibrato:** Rate 2.4-3.9 Hz, Depth 25-40%. Noticeable pitch wobble, musical and expressive.
+- **Seasick:** Rate 0.7-1.1 Hz, Depth 50-70%. Slow, deep pitch swings. Lo-fi and woozy.
+- **Fast shimmer:** Rate 5.2-7.4 Hz, Depth 10-20%. Rapid, tight vibrato -- almost Leslie-like at the extremes.
 - **Chorus vs Vibrato:** Chorus blends wet + dry (creating detuning). Vibrato is 100% wet (pure pitch modulation). Vibrato has a more direct, pronounced pitch effect.
 
 ---
@@ -474,7 +481,7 @@ This is the only modulation effect in the chain that modulates **amplitude**, no
 
 | Parameter | Range | Default | Description |
 |-----------|-------|---------|-------------|
-| Rate | 0.3-12 Hz (quadratic) | **~5 Hz** | LFO speed. The classic guitar-tremolo sweet spot is around 5-7 Hz. |
+| Rate | 0.3-12 Hz (quadratic) | **~2.2 Hz** | LFO speed. The classic guitar-tremolo sweet spot is around 5-7 Hz. |
 | Depth | 0-100% | **50%** | Modulation amount. 0% = off, 100% = approaches gating (silence at trough). |
 | Mode | Photo / Bias / Harmonic | **Photo** | Tremolo topology (see below). Each mode has its own character. |
 | Width | 0-150 deg | **0 deg** | Stereo width. 0 = mono. Higher values offset the right channel's LFO phase for stereo motion. Capped at 150 deg so the effect doesn't collapse to nothing in mono. |
@@ -484,19 +491,19 @@ This is the only modulation effect in the chain that modulates **amplitude**, no
 
 - **Photo** -- Optical tremolo. Models the Fender blackface circuit (Deluxe Reverb, Twin) and the Demeter Tremulator -- a neon bulb illuminates a photoresistor (LDR) which attenuates the signal directly. The LDR's asymmetric thermal lag (faster rise than fall) gives the characteristic "rounded shoulder" envelope shape. Choppier and more punctuated than a textbook sine tremolo.
 
-- **Bias** -- Power-tube bias-modulation tremolo. Models the Fender Princeton Reverb (AA1164) and Vox AC30. Modulates the bias point of a tanh saturator, so the gain *and* the harmonic content vary together as the LFO swings. Subtle THD variation at peaks, mild crossover-like behaviour at troughs. Warmer and more "organic" than the optical mode. 4x oversampled.
+- **Bias** -- Power-tube bias-modulation tremolo. Models the Fender Princeton Reverb (AA1164) and Vox AC30. Swings the drive into a tanh saturator and dips the level with it, so the gain *and* the harmonic content vary together as the LFO swings. A touch more harmonic content at the peaks, cleanest at the troughs. Warmer and more "organic" than the optical mode. 4x oversampled.
 
 - **Harmonic** -- Dual-band antiphase amplitude modulation. Models the rare Fender brownface harmonic vibrato (6G16 Vibroverb). The signal is split into low and high bands at 400 Hz; the bands are then modulated 180 degrees out of phase -- when the bass ducks, the highs rise. Total volume stays roughly constant; what cycles is the spectral balance. The "watery, phasey" tremolo character.
 
 ### Tips
 
-- **Classic Princeton sweep:** Photo mode, Rate ~5 Hz (default), Depth 50-65%. Smooth, even-tempo throb. Add make-up gain (+2 to +4 dB) if the perceived loudness drops too far.
+- **Classic blackface throb:** Photo mode, Rate ~5 Hz, Depth 50-65%. Smooth, even-tempo throb. Add make-up gain (+2 to +4 dB) if the perceived loudness drops too far.
 - **Slow swell:** Rate 1-2 Hz, Depth 70-100%. Long, deliberate dips between peaks. Works well behind reverb-heavy clean tones.
 - **Stutter / aggressive throb:** Rate 8-12 Hz, Depth 80-100%, Photo mode. Fast, choppy modulation that approaches ring-mod territory at the very top of the rate range.
 - **Warm bias-vary:** Bias mode, Rate 4-6 Hz, Depth 50-70%. Sounds less like volume modulation and more like a slow tube saturation breathing. Best with cleans or mild crunch -- the THD variation is subtle on heavy distortion.
 - **Brownface watery:** Harmonic mode, Rate 3-5 Hz, Depth 60-90%. Listen for tonal motion, not volume motion -- the chord cycles between dark and bright. Best with sustained chords (open or barred).
-- **Mono-safe stereo:** Push Width to 60-100 deg. The right channel's LFO lags, creating stereo motion. The 150 deg ceiling prevents the effect from disappearing when the mix is summed to mono (a true 180 deg pan would cancel out).
-- **Tremolo placement:** Tremolo sits in the modulation slot between Reverb and EQ in the default chain. If you want the reverb tail to *also* tremolo, put Tremolo before Reverb (drag in reorder mode). If you want a steady reverb under a tremoloing dry signal, leave the default order.
+- **Mono-safe stereo:** Push Width to 60-100 deg. The right channel's LFO runs ahead of the left, creating stereo motion. The 150 deg ceiling prevents the effect from disappearing when the mix is summed to mono (a true 180 deg pan would cancel out).
+- **Tremolo placement:** Tremolo sits in the modulation slot between Reverb and EQ in the default chain. If you want the reverb tail to *also* tremolo, move the Modulation row above Reverb with the arrows in reorder mode. If you want a steady reverb under a tremoloing dry signal, leave the default order.
 
 ---
 
@@ -527,10 +534,10 @@ This is the only modulation effect in the chain that modulates **amplitude**, no
 
 ## Always-On Processing
 
-These are handled automatically by the effect chain and don't have user controls:
+These run outside the effect slots:
 
-- **Input DC Blocker** -- 5 Hz high-pass filter removes DC offset from the input signal.
-- **Output Soft Limiter** -- Brickwall limiter at -0.1 dBFS prevents clipping. Can be toggled from the sidebar (enabled by default).
+- **Input DC Blocker** -- 5 Hz high-pass filter removes DC offset from the input signal. Always on.
+- **Output Limiter** -- Lookahead peak limiter that holds the output under -0.1 dBFS. It sits after the Master knob. Switch it with the **LIMIT** button in the right-hand sidebar: the LED is green when it's on and flashes amber while it's limiting. On by default, and presets save its state. Its 1 ms lookahead stays in the path when it's off, so latency doesn't change when you toggle it.
 
 ---
 
@@ -539,22 +546,23 @@ These are handled automatically by the effect chain and don't have user controls
 The default signal chain runs top to bottom:
 
 1. **Compressor** -- Placed before the drives so they receive an evened-out signal
-2. **Diode Drive** -- Mid-boost overdrive
-3. **Distortion** -- Main distortion/gain stage
-4. **Amp Sim** -- Amplifier simulation (Silver / Gold / Platinum)
-5. **Noise Gate** -- Placed after all drive stages to gate their noise
-6. **Delay** -- Analog delay
-7. **Reverb** -- Spring or Plate reverb
-8. **Modulation** -- Chorus, Flanger, Phaser, Vibrato, or Tremolo
-9. **EQ** -- Final tone shaping
+2. **Wah** -- Before the drives, where a wah pedal normally sits
+3. **Diode Drive** -- Mid-boost overdrive
+4. **Distortion** -- Main distortion/gain stage
+5. **Amp Sim** -- Amplifier simulation (Silver / Gold / Platinum)
+6. **Noise Gate** -- Placed after all drive stages to gate their noise
+7. **Delay** -- Analog delay
+8. **Reverb** -- Spring or Plate reverb
+9. **Modulation** -- Chorus, Flanger, Phaser, Vibrato, or Tremolo
+10. **EQ** -- Final tone shaping
 
-The chain order can be rearranged using the reorder controls in the chain list sidebar.
+To change the order, click the reorder button under the effect list on the left. Each row gets up/down arrows; Amp Sim, Reverb and Modulation each move as one row. When the order differs from the default, a reset button appears next to the reorder button to put it back. Presets save the chain order.
 
 ---
 
 ## General Tips
 
-- **Gain staging matters.** If your signal is too hot going into distortion, it'll sound harsh. Use the Noise Gate to clean up between drive stages, and the EQ (last in chain) to shape the final output.
+- **Gain staging matters.** If your signal is too hot going into distortion, it'll sound harsh. Use the Noise Gate (after the drives by default) to clean up hiss and hum, and the EQ (last in chain) to shape the final output.
 - **Less is more with high gain.** Back off the Drive and let the tone controls and cabinet IR do the heavy lifting. Real amps don't need Drive at 100% to sound heavy.
 - **Use the presets as starting points.** Load a factory preset and tweak from there rather than starting from scratch.
 - **ASIO for serious playing.** WASAPI adds latency. If you notice a delay between picking and hearing, switch to an ASIO driver in the audio settings. Buffer size of 128 or 256 samples at 44.1 kHz is a good target.
