@@ -141,8 +141,8 @@ void NoiseGate::resetToDefaults()
 {
     setThresholdDb(-40.0f);
     setAttackSeconds(0.001f);
-    setHoldSeconds(0.10f);
-    setReleaseSeconds(0.20f);
+    setHoldSeconds(0.05f);
+    setReleaseSeconds(0.10f);
     setRangeDb(-90.0f);
 }
 

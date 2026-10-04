@@ -17,7 +17,7 @@
     "AmpSimSilver": { "bypassed": true, "gain": 0.3, "bass": 0.5, "mid": 0.5, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "cabinetType": 0, "brightness": 0.5, "micPosition": 0.3, "cabTrim": 0.0 },
     "AmpSimGold": { "bypassed": true, "gain": 0.4, "bass": 0.5, "mid": 0.6, "treble": 0.5, "preampBoost": false, "speakerDrive": 0.2, "presence": 0.7, "cabinetType": 10, "brightness": 0.6, "micPosition": 0.5, "cabTrim": 0.0 },
     "AmpSimPlatinum": { "bypassed": true, "gain": 0.5, "ovLevel": 0.7, "bass": 0.5, "mid": 0.5, "treble": 0.5, "master": 0.64, "gainMode": 0, "cabinetType": 0, "micPosition": 0.5, "cabTrim": 0.0, "channel": 0, "boost": false, "inputLow": false, "normalBass": 0.5, "normalMid": 0.5, "normalTreble": 0.5, "normalLevel": 0.5 },
-    "AnalogDelay": { "bypassed": true, "time": 0.769, "intensity": 0.35, "echo": 0.35, "modDepth": 0.3, "modRate": 0.3, "tone": 0.5 },
+    "AnalogDelay": { "bypassed": true, "time": 0.769, "intensity": 0.35, "echo": 0.5, "modDepth": 0.3, "modRate": 0.3, "tone": 0.5 },
     "SpringReverb": { "bypassed": true, "dwell": 0.5, "decay": 0.5, "tone": 0.5, "mix": 0.3, "drip": 0.4, "springType": 1 },
     "PlateReverb": { "bypassed": true, "decay": 0.5, "damping": 0.3, "preDelay": 0.0, "mix": 0.3, "width": 1.0, "plateType": 0 },
     "Chorus": { "bypassed": true, "rate": 0.3, "depth": 0.4, "eq": 0.7, "eLevel": 0.5 },

@@ -158,7 +158,7 @@ void Chorus::resetToDefaults()
     setRate(0.3f);
     setDepth(0.4f);
     setEQ(0.7f);
-    setELevel(0.35f);
+    setELevel(0.5f);
 }
 
 void Chorus::setRate(float value)   { rateParam = juce::jlimit(0.0f, 1.0f, value); }

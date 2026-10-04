@@ -220,8 +220,8 @@ void MetalDistortion::process(juce::AudioBuffer<float>& buffer)
 void MetalDistortion::resetToDefaults()
 {
     setDrive(0.5f);
-    setTone(0.7f);
-    setLevel(0.75f);
+    setTone(1.0f);
+    setLevel(0.85f);
 }
 
 void MetalDistortion::setDrive(float value) { driveParam = juce::jlimit(0.0f, 1.0f, value); }

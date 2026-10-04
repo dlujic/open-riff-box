@@ -446,11 +446,14 @@ void apply(const Preset& preset, OpenRiffBoxProcessor& processor)
             {
                 dist->setBypassed(getBool(v, "bypassed", true));
                 // Mode before drive/tone/level: those setters route to the Metal
-                // engine only when the mode is already Metal.
-                dist->setMode(static_cast<Distortion::Mode>(getInt(v, "mode", 0)));
+                // engine only when the mode is already Metal, which has its own
+                // defaults.
+                const auto mode = static_cast<Distortion::Mode>(getInt(v, "mode", 0));
+                const bool metal = (mode == Distortion::Mode::Metal);
+                dist->setMode(mode);
                 dist->setDrive(getDouble(v, "drive", 0.5));
-                dist->setTone(getDouble(v, "tone", 0.65));
-                dist->setLevel(getDouble(v, "level", 0.7));
+                dist->setTone(getDouble(v, "tone", metal ? 1.0 : 0.65));
+                dist->setLevel(getDouble(v, "level", metal ? 0.85 : 0.7));
                 dist->setMix(getDouble(v, "mix", 0.8));
                 dist->setSaturate(getDouble(v, "saturate", 0.5));
                 dist->setSaturateEnabled(getBool(v, "saturateEnabled", false));

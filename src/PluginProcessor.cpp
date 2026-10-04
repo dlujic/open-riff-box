@@ -593,11 +593,14 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
         {
             dist->setBypassed(distXml->getBoolAttribute("bypassed", true));
             // Mode before drive/tone/level: those setters route to the Metal
-            // engine only when the mode is already Metal.
-            dist->setMode(static_cast<Distortion::Mode>(distXml->getIntAttribute("mode", 0)));
+            // engine only when the mode is already Metal, which has its own
+            // defaults.
+            const auto mode = static_cast<Distortion::Mode>(distXml->getIntAttribute("mode", 0));
+            const bool metal = (mode == Distortion::Mode::Metal);
+            dist->setMode(mode);
             dist->setDrive(static_cast<float>(distXml->getDoubleAttribute("drive", 0.5)));
-            dist->setTone(static_cast<float>(distXml->getDoubleAttribute("tone", 0.65)));
-            dist->setLevel(static_cast<float>(distXml->getDoubleAttribute("level", 0.7)));
+            dist->setTone(static_cast<float>(distXml->getDoubleAttribute("tone", metal ? 1.0 : 0.65)));
+            dist->setLevel(static_cast<float>(distXml->getDoubleAttribute("level", metal ? 0.85 : 0.7)));
             dist->setMix(static_cast<float>(distXml->getDoubleAttribute("mix", 0.8)));
             dist->setSaturate(static_cast<float>(distXml->getDoubleAttribute("saturate", 0.5)));
             dist->setSaturateEnabled(distXml->getBoolAttribute("saturateEnabled", false));

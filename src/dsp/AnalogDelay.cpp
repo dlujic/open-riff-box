@@ -199,7 +199,7 @@ void AnalogDelay::resetToDefaults()
 {
     setTime(0.769f);
     setIntensity(0.35f);
-    setEcho(0.35f);
+    setEcho(0.5f);
     setModDepth(0.3f);
     setModRate(0.3f);
     setTone(0.5f);
