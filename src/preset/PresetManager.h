@@ -44,8 +44,18 @@ public:
     // Loads the "Init" factory preset (bypasses everything). Returns false if not found.
     bool loadInitPreset();
 
+    // Presets are stored as keys relative to the preset dirs ("factory/<file>",
+    // "user/<file>"), so a moved portable folder or a project opened on another
+    // machine still finds them. An empty slot key means the slot's default.
     void saveSlotAssignments(juce::PropertiesFile* props);
     void loadSlotAssignments(juce::PropertiesFile* props);
+    juce::StringArray getSlotKeys() const;
+    void setSlotKeys(const juce::StringArray& keys);
+
+    // For an editor that is rebuilt (plugin window reopened): puts back what
+    // getActivePresetKey / getActiveSlotIndex / isActiveDirty reported
+    juce::String getActivePresetKey() const;
+    void restoreActivePreset(const juce::String& key, int slot, bool dirty);
 
     const juce::File& getUserDir() const { return userDir; }
 
@@ -68,6 +78,8 @@ private:
     static constexpr const char* defaultSlotNames[numSlots] = { "Crystal Clean", "Platinum Crunch", "Metal Rhythm", nullptr };
 
     void applyPreset(const Preset& preset);
-    int findPresetByFile(const juce::File& file) const;
+    int defaultSlotAssignment(int slot) const;
+    juce::String keyForPreset(int index) const;
+    int findPresetByKey(const juce::String& key) const;
     int findPresetByName(const juce::String& name) const;
 };

@@ -171,64 +171,79 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
 
     // Preset system
 #if JUCE_MAC
-    // Factory presets ship inside the bundle; user presets need a writable dir,
-    // so they live next to the settings file in Application Support (path must
-    // stay in sync with the storage parameters in Main.cpp).
+    // Factory presets ship inside the bundle - currentApplicationFile is the
+    // bundle holding this binary, the .vst3 in a plugin. User presets need a
+    // writable dir, so the standalone and the plugin share one next to the
+    // settings file in Application Support (path must stay in sync with the
+    // storage parameters in Main.cpp).
     auto factoryDir = juce::File::getSpecialLocation(juce::File::currentApplicationFile)
                           .getChildFile("Contents/Resources/presets/factory");
     auto userDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
                        .getChildFile("Application Support/OpenRiffBox/presets/user");
 #else
+    juce::File factoryDir, userDir;
     auto exeDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
-    auto presetsDir = exeDir.getChildFile("presets");
 
-    // If running from a build directory, look for presets at project root
-    if (!presetsDir.getChildFile("factory").isDirectory())
+    if (processorRef.isStandalone())
     {
-        auto projectRoot = exeDir;
-        for (int i = 0; i < 6; ++i)
+        auto presetsDir = exeDir.getChildFile("presets");
+
+        // If running from a build directory, look for presets at project root
+        if (!presetsDir.getChildFile("factory").isDirectory())
         {
-            projectRoot = projectRoot.getParentDirectory();
-            if (projectRoot.getChildFile("presets").getChildFile("factory").isDirectory())
+            auto projectRoot = exeDir;
+            for (int i = 0; i < 6; ++i)
             {
-                presetsDir = projectRoot.getChildFile("presets");
-                break;
+                projectRoot = projectRoot.getParentDirectory();
+                if (projectRoot.getChildFile("presets").getChildFile("factory").isDirectory())
+                {
+                    presetsDir = projectRoot.getChildFile("presets");
+                    break;
+                }
             }
         }
-    }
 
-    auto factoryDir = presetsDir.getChildFile("factory");
-    auto userDir = presetsDir.getChildFile("user");
+        factoryDir = presetsDir.getChildFile("factory");
+        userDir = presetsDir.getChildFile("user");
+    }
+    else
+    {
+        // The plugin module sits in <bundle>/Contents/<arch>/ and its factory
+        // presets in <bundle>/Contents/Resources. The bundle's install dir isn't
+        // user-writable, so user presets go to the per-user app data dir.
+        factoryDir = exeDir.getParentDirectory().getChildFile("Resources/presets/factory");
+        userDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                      .getChildFile("OpenRiffBox/presets/user");
+    }
 #endif
 
     presetManager = std::make_unique<PresetManager>(processorRef, factoryDir, userDir);
-
-    // Load slot assignments from app settings (falls back to defaults if unset)
-#if JucePlugin_Build_Standalone
-    if (auto* holder = juce::StandalonePluginHolder::getInstance())
-        if (auto* props = dynamic_cast<juce::PropertiesFile*>(holder->settings.get()))
-            presetManager->loadSlotAssignments(props);
-#endif
+    loadSlotAssignments();
+    loadActivePreset();
 
     presetBar = std::make_unique<PresetBar>(*presetManager);
     addAndMakeVisible(*presetBar);
 
     presetBar->onSlotClicked = [this] { refreshAllUI(); };
 
+    // Every change to the active preset or its dirty flag lands in one of these
     presetManager->onPresetLoaded = [this]
     {
+        saveActivePreset();
         refreshAllUI();
         if (presetBar) presetBar->refreshSlots();
     };
 
     presetManager->onPresetListChanged = [this]
     {
+        saveActivePreset();
         if (presetBar) presetBar->refreshSlots();
         if (presetBrowserPanel) presetBrowserPanel->refreshList();
     };
 
     presetManager->onPresetDirtyChanged = [this]
     {
+        saveActivePreset();
         if (presetBar) presetBar->refreshSlots();
     };
 
@@ -241,12 +256,18 @@ MainLayout::MainLayout(OpenRiffBoxProcessor& processor)
         if (presetBar) presetBar->refreshSlots();
     };
 
+    presetBrowserPanel->onSlotAssigned = [this] { saveSlotAssignments(); };
+
+    processorRef.getStateRestoredBroadcaster().addChangeListener(this);
+
     // Default to Amp Sim on first load (visual index 4 = Amp Sim, after Compressor/Wah/Diode Drive/Distortion)
     chainList.selectEffect(4);
 }
 
 MainLayout::~MainLayout()
 {
+    processorRef.getStateRestoredBroadcaster().removeChangeListener(this);
+
     if (tooltipWindow != nullptr)
         tooltipWindow->setLookAndFeel(nullptr);
     chainList.removeListener(this);
@@ -485,6 +506,66 @@ void MainLayout::refreshAllUI()
     chainList.refreshBypassStates();
     if (detailPanel != nullptr)
         detailPanel->syncBypassStates();
+}
+
+void MainLayout::loadSlotAssignments()
+{
+    if (!processorRef.isStandalone())
+    {
+        presetManager->setSlotKeys(processorRef.getPresetSlotKeys());
+        return;
+    }
+
+    // Falls back to defaults for slots never saved
+#if JucePlugin_Build_Standalone
+    if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        if (auto* props = dynamic_cast<juce::PropertiesFile*>(holder->settings.get()))
+            presetManager->loadSlotAssignments(props);
+#endif
+}
+
+void MainLayout::saveSlotAssignments()
+{
+    if (!processorRef.isStandalone())
+    {
+        processorRef.setPresetSlotKeys(presetManager->getSlotKeys());
+        return;
+    }
+
+#if JucePlugin_Build_Standalone
+    if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        if (auto* props = dynamic_cast<juce::PropertiesFile*>(holder->settings.get()))
+            presetManager->saveSlotAssignments(props);
+#endif
+}
+
+void MainLayout::loadActivePreset()
+{
+    if (processorRef.isStandalone())
+        return;
+
+    const auto active = processorRef.getActivePreset();
+    presetManager->restoreActivePreset(active.key, active.slot, active.dirty);
+}
+
+void MainLayout::saveActivePreset()
+{
+    if (processorRef.isStandalone())
+        return;
+
+    processorRef.setActivePreset({ presetManager->getActivePresetKey(),
+                                   presetManager->getActiveSlotIndex(),
+                                   presetManager->isActiveDirty() });
+}
+
+void MainLayout::changeListenerCallback(juce::ChangeBroadcaster*)
+{
+    loadSlotAssignments();
+    loadActivePreset();
+    sidebarPanel.syncFromProcessor();
+    refreshAllUI();
+    if (presetBar) presetBar->refreshSlots();
+    if (presetBrowserPanel) presetBrowserPanel->refreshList();
 }
 
 int MainLayout::chainIndexToPanelIndex(const juce::String& effectName)

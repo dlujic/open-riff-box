@@ -211,6 +211,19 @@ void OpenRiffBoxProcessor::getStateInformation(juce::MemoryBlock& destData)
     xml->setAttribute("metronomeBeats",  metronomeEngine.getBeatsPerBar());
     xml->setAttribute("metronomeVolume", static_cast<double>(metronomeEngine.getVolume()));
 
+    // Preset bar: empty unless a plugin's editor has filled it
+    const auto slotKeys = getPresetSlotKeys();
+    const auto active   = getActivePreset();
+    if (!slotKeys.isEmpty() || active.key.isNotEmpty())
+    {
+        auto* e = xml->createNewChildElement("PresetBar");
+        for (int s = 0; s < slotKeys.size(); ++s)
+            e->setAttribute("slot" + juce::String(s), slotKeys[s]);
+        e->setAttribute("active",      active.key);
+        e->setAttribute("activeSlot",  active.slot);
+        e->setAttribute("activeDirty", active.dirty);
+    }
+
     // Save chain order (only if non-default)
     if (!effectChain.isDefaultOrder())
     {
@@ -469,6 +482,20 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
     metronomeEngine.setBpm(xml->getIntAttribute("metronomeBpm", 120));
     metronomeEngine.setBeatsPerBar(xml->getIntAttribute("metronomeBeats", 4));
     metronomeEngine.setVolume(static_cast<float>(xml->getDoubleAttribute("metronomeVolume", 0.2)));
+
+    // No PresetBar element = default slots, no active preset
+    juce::StringArray slotKeys;
+    ActivePreset active;
+    if (auto* barXml = xml->getChildByName("PresetBar"))
+    {
+        for (int s = 0; barXml->hasAttribute("slot" + juce::String(s)); ++s)
+            slotKeys.add(barXml->getStringAttribute("slot" + juce::String(s)));
+        active.key   = barXml->getStringAttribute("active");
+        active.slot  = barXml->getIntAttribute("activeSlot", -1);
+        active.dirty = barXml->getBoolAttribute("activeDirty", false);
+    }
+    setPresetSlotKeys(slotKeys);
+    setActivePreset(active);
 
     // Restore chain order (if saved)
     auto orderStr = xml->getStringAttribute("chainOrder", "");
@@ -775,6 +802,8 @@ void OpenRiffBoxProcessor::setStateInformation(const void* data, int sizeInBytes
             eq->setLevel(static_cast<float>(eqXml->getDoubleAttribute("level", 0.0)));
         }
     }
+
+    stateRestored.sendChangeMessage();
 }
 
 void OpenRiffBoxProcessor::setAmpSimEngine(int engine)

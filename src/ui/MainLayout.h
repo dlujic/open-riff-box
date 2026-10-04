@@ -19,7 +19,8 @@ class OpenRiffBoxProcessor;
 class PresetManager;
 
 class MainLayout : public juce::Component,
-                   public ChainListPanel::Listener
+                   public ChainListPanel::Listener,
+                   private juce::ChangeListener
 {
 public:
     explicit MainLayout(OpenRiffBoxProcessor& processor);
@@ -65,6 +66,17 @@ private:
     bool metronomePanelVisible = false;
 
     void refreshAllUI();
+
+    // Quick slots: settings file in the standalone, processor state in a plugin
+    void loadSlotAssignments();
+    void saveSlotAssignments();
+
+    // Active preset: processor state in a plugin, so it outlives the window
+    void loadActivePreset();
+    void saveActivePreset();
+
+    // The host restored state under the open editor
+    void changeListenerCallback(juce::ChangeBroadcaster*) override;
 
     // Translates a chain-order index to the fixed panel index
     // (panels array in EffectDetailPanel is always in default order)

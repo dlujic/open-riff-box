@@ -189,6 +189,22 @@ else()
     )
 endif()
 
+# The VST3 carries its own factory presets: a plugin can't see the standalone's
+# folder, and the bundle is the one thing a user always installs whole. On
+# macOS JUCE has already signed the bundle by now, so re-seal it after the copy.
+get_target_property(VST3_BUNDLE_DIR OpenRiffBox_VST3 JUCE_PLUGIN_ARTEFACT_FILE)
+add_custom_command(TARGET OpenRiffBox_VST3 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/presets/factory"
+        "${VST3_BUNDLE_DIR}/Contents/Resources/presets/factory"
+    COMMENT "Embedding factory presets in OpenRiffBox.vst3"
+)
+if(APPLE)
+    add_custom_command(TARGET OpenRiffBox_VST3 POST_BUILD
+        COMMAND codesign --force -s - "${VST3_BUNDLE_DIR}"
+    )
+endif()
+
 target_link_libraries(OpenRiffBox
     PRIVATE
         juce::juce_audio_basics

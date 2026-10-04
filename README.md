@@ -61,7 +61,7 @@ and labeled **beta** -- lightly tested, reports welcome. If you play on either, 
 
 **Requirements:** x86_64 with the usual desktop libraries (ALSA, X11, FreeType, fontconfig -- present on any stock desktop distro).
 
-All three downloads also include a VST3 build of the same processor (less tested than the standalone).
+All three downloads also include a VST3 build of the same processor (less tested than the standalone). Install the whole `OpenRiffBox.vst3` folder, since the factory presets ride inside it. The plugin keeps user presets in `%APPDATA%\OpenRiffBox\presets\user` on Windows and `~/.config/OpenRiffBox/presets/user` on Linux; on macOS it shares the standalone's Application Support folder.
 
 ## Signal Chain
 

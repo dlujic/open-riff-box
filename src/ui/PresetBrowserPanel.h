@@ -21,6 +21,9 @@ public:
     // Called when a preset is loaded from this panel
     std::function<void()> onPresetLoaded = [] {};
 
+    // Called after a slot assignment changes, so the owner can persist it
+    std::function<void()> onSlotAssigned = [] {};
+
 private:
     PresetManager& presetManager;
 

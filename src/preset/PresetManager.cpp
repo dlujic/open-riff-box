@@ -15,10 +15,7 @@ PresetManager::PresetManager(OpenRiffBoxProcessor& proc,
     scanPresets();
 
     for (int s = 0; s < numSlots; ++s)
-    {
-        if (defaultSlotNames[s] != nullptr)
-            slotAssignments[s] = findPresetByName(defaultSlotNames[s]);
-    }
+        slotAssignments[s] = defaultSlotAssignment(s);
 }
 
 void PresetManager::scanPresets()
@@ -240,46 +237,84 @@ void PresetManager::saveSlotAssignments(juce::PropertiesFile* props)
 {
     if (props == nullptr) return;
 
+    const auto keys = getSlotKeys();
     for (int s = 0; s < numSlots; ++s)
-    {
-        juce::String key = "presetSlot" + juce::String(s);
-        int idx = slotAssignments[s];
-
-        if (idx >= 0 && idx < static_cast<int>(presets.size()))
-            props->setValue(key, presets[static_cast<size_t>(idx)].sourceFile.getFullPathName());
-        else
-            props->setValue(key, "");
-    }
+        props->setValue("presetSlot" + juce::String(s), keys[s]);
 }
 
 void PresetManager::loadSlotAssignments(juce::PropertiesFile* props)
 {
     if (props == nullptr) return;
 
+    juce::StringArray keys;
     for (int s = 0; s < numSlots; ++s)
     {
-        juce::String key = "presetSlot" + juce::String(s);
-        auto path = props->getValue(key, "");
+        auto value = props->getValue("presetSlot" + juce::String(s), "");
 
-        if (path.isEmpty())
+        // Settings written before the keys held absolute paths; the parent
+        // folder name recovers the key even if the folder has moved since
+        if (juce::File::isAbsolutePath(value))
         {
-            if (defaultSlotNames[s] != nullptr)
-                slotAssignments[s] = findPresetByName(defaultSlotNames[s]);
-            else
-                slotAssignments[s] = -1;
+            const juce::File legacy(value);
+            value = legacy.getParentDirectory().getFileName() + "/" + legacy.getFileName();
         }
-        else
-        {
-            slotAssignments[s] = findPresetByFile(juce::File(path));
-        }
+        keys.add(value);
+    }
+    setSlotKeys(keys);
+}
+
+juce::StringArray PresetManager::getSlotKeys() const
+{
+    juce::StringArray keys;
+    for (int s = 0; s < numSlots; ++s)
+        keys.add(keyForPreset(slotAssignments[s]));
+    return keys;
+}
+
+void PresetManager::setSlotKeys(const juce::StringArray& keys)
+{
+    for (int s = 0; s < numSlots; ++s)
+    {
+        const auto& key = keys[s];   // out of range reads as empty
+        slotAssignments[s] = key.isEmpty() ? defaultSlotAssignment(s) : findPresetByKey(key);
     }
 }
 
-int PresetManager::findPresetByFile(const juce::File& file) const
+juce::String PresetManager::getActivePresetKey() const
 {
+    return keyForPreset(activePresetIndex);
+}
+
+void PresetManager::restoreActivePreset(const juce::String& key, int slot, bool dirty)
+{
+    activePresetIndex = key.isEmpty() ? -1 : findPresetByKey(key);
+    activeSlot  = (activePresetIndex >= 0 && slot >= 0 && slot < numSlots) ? slot : -1;
+    activeDirty = activePresetIndex >= 0 && dirty;
+}
+
+int PresetManager::defaultSlotAssignment(int slot) const
+{
+    return defaultSlotNames[slot] != nullptr ? findPresetByName(defaultSlotNames[slot]) : -1;
+}
+
+juce::String PresetManager::keyForPreset(int index) const
+{
+    if (auto* p = getPreset(index))
+        return juce::String(p->isFactory ? "factory/" : "user/") + p->sourceFile.getFileName();
+    return {};
+}
+
+int PresetManager::findPresetByKey(const juce::String& key) const
+{
+    const bool factory = key.startsWith("factory/");
+    if (!factory && !key.startsWith("user/"))
+        return -1;
+
+    const auto fileName = key.fromFirstOccurrenceOf("/", false, false);
     for (int i = 0; i < static_cast<int>(presets.size()); ++i)
     {
-        if (presets[static_cast<size_t>(i)].sourceFile == file)
+        const auto& p = presets[static_cast<size_t>(i)];
+        if (p.isFactory == factory && p.sourceFile.getFileName() == fileName)
             return i;
     }
     return -1;

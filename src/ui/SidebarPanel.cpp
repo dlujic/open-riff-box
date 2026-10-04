@@ -55,6 +55,11 @@ SidebarPanel::~SidebarPanel()
     masterKnob.setLookAndFeel(nullptr);
 }
 
+void SidebarPanel::syncFromProcessor()
+{
+    masterKnob.setValue(processorRef.getMasterVolume(), juce::dontSendNotification);
+}
+
 void SidebarPanel::timerCallback()
 {
     // Read peak levels from processor

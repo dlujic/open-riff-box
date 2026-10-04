@@ -67,7 +67,7 @@ Users can reorder effects freely via the chain list's reorder mode. Custom order
 
 3. **UI is decoupled from DSP.** DSP code in `src/dsp/` has zero UI dependencies. This separation makes VST export straightforward.
 
-4. **Presets use JSON.** Per-effect parameters, metadata, and optionally chain order. Plugin state (XML) also persists chain order and the custom IR path.
+4. **Presets use JSON.** Per-effect parameters, metadata, and optionally chain order. Plugin state (XML) also persists chain order, the custom IR path, and in the VST3 the quick-slot assignments and active preset.
 
 ### Project Structure
 
@@ -111,7 +111,7 @@ open-riff-box/
 
 Additional features: built-in tuner, built-in metronome (standalone only; woodblock click, tap tempo, time signatures), preset system (save/load, quick-access slots with persisted assignments, modified-preset indicator), 13 loudness-matched factory presets, reorderable signal chain, 20 cabinet IRs (six of them house captures) + custom IR loading with per-engine cab trim, switchable lookahead output limiter.
 
-Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (beta). Standalone + VST3 on all three.
+Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (beta). Standalone + VST3 on all three; the VST3 bundle carries its own factory presets.
 
 --
 
@@ -135,7 +135,7 @@ Platforms: Windows x64 (primary), macOS 10.13+ universal (beta), Linux x86_64 (b
 ### DAW Integration
 - VST3 plugin polish (tail length and latency reporting to the host, among other quirks)
 - VST3 parameter automation audit (click/zipper noise on parameter changes)
-- Persist app settings in VST3 too (quick-slot assignments and tooltips are standalone-only today)
+- Persist the tooltip setting in the VST3 too (standalone-only today)
 - Global input trim + meter guidance -- the chain is voiced for instrument-level input
   (peaks around -20 dBFS). Line-level or pre-processed signals (an amp sim upstream in
   the DAW chain, FX-only use behind another rig) run ~20 dB hot, pin the output limiter,

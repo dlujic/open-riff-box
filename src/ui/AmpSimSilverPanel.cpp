@@ -112,24 +112,31 @@ AmpSimSilverPanel::AmpSimSilverPanel(AmpSimSilver& ampSimSilver)
     loadIRButton.setButtonText("Load IR...");
     loadIRButton.setLookAndFeel(&resetLF);
     loadIRButton.onClick = [this] {
-        // Determine default browse directory
-        auto exeDir = juce::File::getSpecialLocation(
-            juce::File::currentExecutableFile).getParentDirectory();
-        auto defaultDir = exeDir.getChildFile("custom-irs");
+        // A plugin's own dir is inside its bundle, so it starts where this
+        // amp's IR lives, else in Documents
+        auto defaultDir = ampSimSilverRef.getCustomIRFile().getParentDirectory();
+        if (!defaultDir.isDirectory())
+            defaultDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
 
-        // Prefer last-used directory from settings
 #if JucePlugin_Build_Standalone
         if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        {
+            auto exeDir = juce::File::getSpecialLocation(
+                juce::File::currentExecutableFile).getParentDirectory();
+            defaultDir = exeDir.getChildFile("custom-irs");
+
+            // Prefer last-used directory from settings
             if (auto* props = holder->settings.get())
             {
                 auto saved = props->getValue("lastIRBrowseDir", "");
                 if (saved.isNotEmpty() && juce::File(saved).isDirectory())
                     defaultDir = juce::File(saved);
             }
-#endif
 
-        if (!defaultDir.isDirectory())
-            defaultDir = exeDir;
+            if (!defaultDir.isDirectory())
+                defaultDir = exeDir;
+        }
+#endif
 
         fileChooser = std::make_unique<juce::FileChooser>(
             "Load Cabinet IR", defaultDir, "*.wav");

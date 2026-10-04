@@ -190,22 +190,30 @@ AmpSimPlatinumPanel::AmpSimPlatinumPanel(AmpSimPlatinum& ampSimPlatinum)
     loadIRButton.setButtonText("Load IR...");
     loadIRButton.setLookAndFeel(&resetLF);
     loadIRButton.onClick = [this] {
-        auto exeDir = juce::File::getSpecialLocation(
-            juce::File::currentExecutableFile).getParentDirectory();
-        auto defaultDir = exeDir.getChildFile("custom-irs");
+        // A plugin's own dir is inside its bundle, so it starts where this
+        // amp's IR lives, else in Documents
+        auto defaultDir = platinumRef.getCustomIRFile().getParentDirectory();
+        if (!defaultDir.isDirectory())
+            defaultDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
 
 #if JucePlugin_Build_Standalone
         if (auto* holder = juce::StandalonePluginHolder::getInstance())
+        {
+            auto exeDir = juce::File::getSpecialLocation(
+                juce::File::currentExecutableFile).getParentDirectory();
+            defaultDir = exeDir.getChildFile("custom-irs");
+
             if (auto* props = holder->settings.get())
             {
                 auto saved = props->getValue("lastIRBrowseDir", "");
                 if (saved.isNotEmpty() && juce::File(saved).isDirectory())
                     defaultDir = juce::File(saved);
             }
-#endif
 
-        if (!defaultDir.isDirectory())
-            defaultDir = exeDir;
+            if (!defaultDir.isDirectory())
+                defaultDir = exeDir;
+        }
+#endif
 
         fileChooser = std::make_unique<juce::FileChooser>(
             "Load Cabinet IR", defaultDir, "*.wav");

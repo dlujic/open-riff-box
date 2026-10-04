@@ -115,6 +115,45 @@ public:
     void setModulationEngine(int engine);
 
     //===========================================================================
+    // Preset bar state, as PresetManager keys ("factory/<file>", "user/<file>").
+    // Plugin only: a plugin's editor and its PresetManager die with the window,
+    // so the quick slots and the active preset ride in plugin state. The
+    // standalone keeps its slots in the settings file.
+    //===========================================================================
+    struct ActivePreset
+    {
+        juce::String key;   // empty = none
+        int  slot  = -1;
+        bool dirty = false;
+    };
+
+    juce::StringArray getPresetSlotKeys() const
+    {
+        const juce::ScopedLock sl(presetBarLock);
+        return presetSlotKeys;
+    }
+    void setPresetSlotKeys(const juce::StringArray& keys)
+    {
+        const juce::ScopedLock sl(presetBarLock);
+        presetSlotKeys = keys;
+    }
+
+    ActivePreset getActivePreset() const
+    {
+        const juce::ScopedLock sl(presetBarLock);
+        return activePreset;
+    }
+    void setActivePreset(const ActivePreset& preset)
+    {
+        const juce::ScopedLock sl(presetBarLock);
+        activePreset = preset;
+    }
+
+    // Fires on the message thread after setStateInformation, so an open
+    // editor can catch up with state the host restored under it
+    juce::ChangeBroadcaster& getStateRestoredBroadcaster() { return stateRestored; }
+
+    //===========================================================================
     // Accessors for the editor
     //===========================================================================
     EffectChain& getEffectChain() { return effectChain; }
@@ -155,6 +194,13 @@ private:
 
     // Cached latency: updated each processBlock so bypass changes are reflected
     int lastReportedLatency = -1;
+
+    // Hosts may save state off the message thread
+    juce::StringArray presetSlotKeys;
+    ActivePreset activePreset;
+    juce::CriticalSection presetBarLock;
+
+    juce::ChangeBroadcaster stateRestored;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OpenRiffBoxProcessor)
 };

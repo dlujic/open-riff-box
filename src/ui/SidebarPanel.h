@@ -14,6 +14,9 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
+    // The master knob is the one control the timer doesn't follow
+    void syncFromProcessor();
+
 private:
     OpenRiffBoxProcessor& processorRef;
     const bool showPower;   // standalone only - a host owns start/stop
