@@ -15,30 +15,17 @@ AmpSimGoldPanel::AmpSimGoldPanel(AmpSimGold& ampSimGold)
     setupKnob(brightnessKnob,  brightnessLabel,  "Brightness", 0.0, 1.0, 0.01);
     setupKnob(micPositionKnob, micPositionLabel, "Mic",        0.0, 1.0, 0.01);
 
-    // Bass/Mid/Treble: subtractive cut-to-flat (-15 dB to 0 dB)
-    auto eqDisplay = [](double v) {
-        double db = -15.0 * (1.0 - v);
+    // Bass/Mid/Treble keep setupKnob's %: they drive one interactive tone
+    // stack, so no knob has a dB value of its own
+
+    // Brightness: show the 3.5 kHz shelf gain in dB (-6 to +6)
+    brightnessKnob.textFromValueFunction = [](double v) {
+        double db = -6.0 + 12.0 * v;
         if (std::abs(db) < 0.5) return juce::String("0 dB");
         return juce::String(db, 1) + " dB";
     };
-    auto eqFromText = [](const juce::String& text) {
-        double db = text.trimCharactersAtEnd(" dB").getDoubleValue();
-        return 1.0 + db / 15.0;
-    };
-    bassKnob.textFromValueFunction = eqDisplay;
-    bassKnob.valueFromTextFunction = eqFromText;
-    midKnob.textFromValueFunction = eqDisplay;
-    midKnob.valueFromTextFunction = eqFromText;
-    trebleKnob.textFromValueFunction = eqDisplay;
-    trebleKnob.valueFromTextFunction = eqFromText;
-
-    // Brightness: show cutoff frequency (3-10 kHz)
-    brightnessKnob.textFromValueFunction = [](double v) {
-        double freq = 3000.0 + v * 7000.0;
-        return juce::String(freq / 1000.0, 1) + " kHz";
-    };
     brightnessKnob.valueFromTextFunction = [](const juce::String& text) {
-        return (text.trimCharactersAtEnd(" kHz").getDoubleValue() * 1000.0 - 3000.0) / 7000.0;
+        return (text.trimCharactersAtEnd(" dB").getDoubleValue() + 6.0) / 12.0;
     };
 
     // Mic position: show dB (-4 to +4)

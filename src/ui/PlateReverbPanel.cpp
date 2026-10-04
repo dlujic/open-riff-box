@@ -11,6 +11,14 @@ PlateReverbPanel::PlateReverbPanel(PlateReverb& reverb)
     setupKnob(preDelayKnob, preDelayLabel, "Pre-Delay", 0.0, 1.0, 0.01);
     setupKnob(widthKnob,    widthLabel,    "Width",     0.0, 1.0, 0.01);
 
+    // Pre-delay: show ms (0 to 100)
+    preDelayKnob.textFromValueFunction = [](double v) {
+        return juce::String(juce::roundToInt(v * 100.0)) + " ms";
+    };
+    preDelayKnob.valueFromTextFunction = [](const juce::String& text) {
+        return text.trimCharactersAtEnd(" ms").getDoubleValue() / 100.0;
+    };
+
     decayKnob.onValueChange = [this] {
         reverbRef.setDecay(static_cast<float>(decayKnob.getValue()));
         onParameterChanged();

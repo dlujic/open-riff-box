@@ -17,10 +17,9 @@ DiodeDrivePanel::DiodeDrivePanel(DiodeDrive& diodeDrive)
     removeChildComponent(&toneKnob);
     removeChildComponent(&toneLabel);
 
-    // Level: show dB (-60 to +6)
+    // Level: show dB (-60 to +6; the floor is -60 dB, not silence)
     levelKnob.textFromValueFunction = [](double v) {
         double db = -60.0 + 66.0 * v;
-        if (db <= -59.0) return juce::String("-inf");
         return juce::String(db, 1) + " dB";
     };
     levelKnob.valueFromTextFunction = [](const juce::String& text) {

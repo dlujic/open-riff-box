@@ -18,16 +18,19 @@ CompressorPanel::CompressorPanel(Compressor& comp)
         return juce::jlimit(0.0, 1.0, t.trimCharactersAtEnd(" dB").getDoubleValue() / 30.0);
     };
 
-    attackKnob.textFromValueFunction = [](double v) {
-        // Studio/Squeeze: 2*25^t ms; Opto uses a different range but the panel
-        // shows the Studio mapping for consistency (Opto range shifts internally).
-        double ms = 2.0 * std::pow(25.0, v);
-        return juce::String(ms, 1) + " ms";
+    // Attack range follows the mode, as in Compressor's mode tables:
+    // Studio/Squeeze 2-50 ms, Opto 10-120 ms
+    attackKnob.textFromValueFunction = [this](double v) {
+        const bool opto = compRef.getMode() == 2;
+        const double lo = opto ? 10.0 : 2.0, hi = opto ? 120.0 : 50.0;
+        return juce::String(lo * std::pow(hi / lo, v), 1) + " ms";
     };
-    attackKnob.valueFromTextFunction = [](const juce::String& t) {
-        double ms = t.trimCharactersAtEnd(" ms").getDoubleValue();
-        if (ms <= 2.0) return 0.0;
-        return juce::jlimit(0.0, 1.0, std::log(ms / 2.0) / std::log(25.0));
+    attackKnob.valueFromTextFunction = [this](const juce::String& t) {
+        const bool opto = compRef.getMode() == 2;
+        const double lo = opto ? 10.0 : 2.0, hi = opto ? 120.0 : 50.0;
+        const double ms = t.trimCharactersAtEnd(" ms").getDoubleValue();
+        if (ms <= lo) return 0.0;
+        return juce::jlimit(0.0, 1.0, std::log(ms / lo) / std::log(hi / lo));
     };
 
     levelKnob.textFromValueFunction = [](double v) {
@@ -52,6 +55,7 @@ CompressorPanel::CompressorPanel(Compressor& comp)
         if (id > 0)
         {
             compRef.setMode(id - 1);
+            attackKnob.updateText();
             onParameterChanged();
         }
     };
@@ -138,6 +142,7 @@ void CompressorPanel::syncFromDsp()
     levelKnob  .setValue(compRef.getLevel(),   juce::dontSendNotification);
     bypassButton.setToggleState(!compRef.isBypassed(), juce::dontSendNotification);
     modeSelector.setSelectedId(compRef.getMode() + 1, juce::dontSendNotification);
+    attackKnob.updateText();   // mode may have changed under an unchanged value
 }
 
 void CompressorPanel::paint(juce::Graphics& g)

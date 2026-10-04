@@ -9,26 +9,34 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
     setupKnob(toneKnob,  toneLabel,  "Tone",  0.0, 1.0, 0.01);
     setupKnob(levelKnob, levelLabel, "Level", 0.0, 1.0, 0.01);
 
-    // Tone: show cutoff frequency (mode-dependent, but roughly 500-8000 Hz)
-    toneKnob.textFromValueFunction = [](double v) {
-        double freq = 500.0 * std::pow(16.0, v);
+    // Tone: show cutoff frequency, 500 Hz up to a per-mode ceiling (each
+    // engine's updateToneFilter): ~7 kHz OD/Tube, ~6 kHz Distortion, 5 kHz Metal
+    const auto toneDecades = [this] {
+        switch (distortionRef.getMode())
+        {
+            case Distortion::Mode::Distortion: return 1.08;
+            case Distortion::Mode::Metal:      return 1.0;
+            default:                           return 1.15;
+        }
+    };
+    toneKnob.textFromValueFunction = [toneDecades](double v) {
+        double freq = 500.0 * std::pow(10.0, toneDecades() * v);
         if (freq >= 1000.0) return juce::String(freq / 1000.0, 1) + " kHz";
         return juce::String(juce::roundToInt(freq)) + " Hz";
     };
-    toneKnob.valueFromTextFunction = [](const juce::String& text) {
+    toneKnob.valueFromTextFunction = [toneDecades](const juce::String& text) {
         double val = 0.0;
         if (text.containsIgnoreCase("kHz"))
             val = text.trimCharactersAtEnd(" kHz").getDoubleValue() * 1000.0;
         else
             val = text.trimCharactersAtEnd(" Hz").getDoubleValue();
         if (val <= 500.0) return 0.0;
-        return std::log(val / 500.0) / std::log(16.0);
+        return juce::jlimit(0.0, 1.0, std::log10(val / 500.0) / toneDecades());
     };
 
-    // Level: show dB (-60 to +6)
+    // Level: show dB (-60 to +6; the floor is -60 dB, not silence)
     levelKnob.textFromValueFunction = [](double v) {
         double db = -60.0 + 66.0 * v;
-        if (db <= -59.0) return juce::String("-inf");
         return juce::String(db, 1) + " dB";
     };
     levelKnob.valueFromTextFunction = [](const juce::String& text) {
@@ -59,6 +67,7 @@ DistortionPanel::DistortionPanel(Distortion& distortion)
         if (id > 0)
         {
             distortionRef.setMode(static_cast<Distortion::Mode>(id - 1));
+            toneKnob.updateText();
             updateControlVisibility();
             onParameterChanged();
         }
@@ -223,6 +232,7 @@ void DistortionPanel::syncFromDsp()
     saturateToggle.setToggleState(distortionRef.getSaturateEnabled(), juce::dontSendNotification);
     modeSelector.setSelectedId(static_cast<int>(distortionRef.getMode()) + 1,
                                juce::dontSendNotification);
+    toneKnob.updateText();   // mode may have changed under an unchanged value
 
     // Sync clip type radio buttons
     auto ct = static_cast<int>(distortionRef.getClipType());

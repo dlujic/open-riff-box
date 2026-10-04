@@ -11,23 +11,18 @@ DelayPanel::DelayPanel(AnalogDelay& delay)
     setupKnob(modDepthKnob,  modDepthLabel,  "Mod",       0.0, 1.0, 0.01);
     setupKnob(modRateKnob,   modRateLabel,   "Rate",      0.0, 1.0, 0.01);
 
-    // Mod depth: show in ms (0 to ~5 ms)
-    modDepthKnob.textFromValueFunction = [](double v) {
-        return juce::String(v * 5.0, 1) + " ms";
-    };
-    modDepthKnob.valueFromTextFunction = [](const juce::String& text) {
-        return text.trimCharactersAtEnd(" ms").getDoubleValue() / 5.0;
-    };
+    // Mod depth keeps setupKnob's %: the wobble it adds scales with Time,
+    // so no fixed ms value is true
 
-    // Mod rate: show in Hz (0.1 to ~5 Hz)
+    // Mod rate: show the wow rate in Hz (0.1 to 2 Hz; flutter is fixed at 4 Hz)
     modRateKnob.textFromValueFunction = [](double v) {
-        double hz = 0.1 + 4.9 * v;
-        return juce::String(hz, 1) + " Hz";
+        double hz = 0.1 + 1.9 * v;
+        return juce::String(hz, 2) + " Hz";
     };
     modRateKnob.valueFromTextFunction = [](const juce::String& text) {
         double hz = text.trimCharactersAtEnd(" Hz").getDoubleValue();
         if (hz <= 0.1) return 0.0;
-        return (hz - 0.1) / 4.9;
+        return (hz - 0.1) / 1.9;
     };
 
     // Time slider: display in ms (logarithmic: 20ms at 0, 400ms at 1)
