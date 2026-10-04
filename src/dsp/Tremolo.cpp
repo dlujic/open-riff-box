@@ -169,7 +169,8 @@ void Tremolo::processBias(juce::AudioBuffer<float>& buffer)
         const float widthOffset  = widthSmoothed.getNextValue();
         const float outputGain   = outputSmoothed.getNextValue();
 
-        // Drive 0.6x..1.4x gives audible THD variation without clean->fuzz alternation.
+        // Drive 0.6x..1.4x at full Depth gives audible THD variation without
+        // clean->fuzz alternation; Depth scales the swing, so 0 = no modulation.
         // Gain-mod scaled to 30% so it doesn't double up on the drive's perceived intensity.
         constexpr float driveBase    = 1.0f;
         constexpr float driveMod     = 0.4f;
@@ -183,7 +184,7 @@ void Tremolo::processBias(juce::AudioBuffer<float>& buffer)
                                                 : std::fmod(lfoPhase + widthOffset, 1.0f);
                 const float lfo = std::sin(chPhase * juce::MathConstants<float>::twoPi);
 
-                const float drive   = driveBase + driveMod * lfo;
+                const float drive   = driveBase + driveMod * depth * lfo;
                 const float scaledD = depth * gainModScale;
                 const float gainMod = (1.0f - scaledD) + scaledD * 0.5f * (1.0f + lfo);
 
